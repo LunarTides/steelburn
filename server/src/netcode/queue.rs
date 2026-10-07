@@ -1,0 +1,34 @@
+use std::{
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+};
+
+#[derive(Default, Clone)]
+pub struct Queue {
+    pub data: Arc<Mutex<Vec<SocketAddr>>>,
+}
+
+impl Queue {
+    pub fn add(&self, addr: SocketAddr) {
+        self.data.lock().unwrap().push(addr);
+    }
+
+    pub fn remove(&self, addr: SocketAddr) -> Option<usize> {
+        // TODO: When a peer disconnects, place their opponent peer back into the queue pool. Actually, maybe not?
+        let mut data = self.data.lock().unwrap();
+        let queue_index = data.iter().position(|x| *x == addr)?;
+        data.remove(queue_index);
+        drop(data);
+        Some(queue_index)
+    }
+
+    pub fn try_matchmake(&self) -> Option<(SocketAddr, SocketAddr)> {
+        let mut data = self.data.lock().unwrap();
+        if data.len() < 2 {
+            return None;
+        }
+
+        // TODO: More advanced matchmaking code.
+        Some((data.pop().unwrap(), data.pop().unwrap()))
+    }
+}
