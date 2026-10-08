@@ -5,6 +5,15 @@ const username = process.argv[2];
 const port = 56040;
 const socket = new WebSocket(`ws://localhost:${port}`);
 
+function enterQueue() {
+  socket.send(JSON.stringify({
+    type: "enter_queue",
+    data: {},
+  }));
+
+  console.log("Entered queue.");
+}
+
 socket.addEventListener("open", () => {
   console.log("Connected.");
 
@@ -15,15 +24,7 @@ socket.addEventListener("open", () => {
     },
   }));
 
-  socket.send(JSON.stringify({
-    type: "enter_queue",
-    data: {},
-  }));
-
-  socket.send(JSON.stringify({
-    type: "end_turn",
-    data: {},
-  }));
+  enterQueue();
 });
 socket.addEventListener("close", (event) => {
   console.log(`Disconnected. Reason: ${event.reason} (${event.code})`);
@@ -34,12 +35,15 @@ socket.addEventListener("message", (event) => {
   console.log("\n[Server/Packet]");
   console.log(`${JSON.stringify(packet, null, 2)}`);
 
-  if (packet.type === "end_game") {
-    // socket.close();
-    // Enter queue again.
+  if (packet.type === "opponent_player_info") {
+    // Testing packet.
     socket.send(JSON.stringify({
-      type: "enter_queue",
+      type: "end_turn",
       data: {},
     }));
+  } else if (packet.type === "end_game") {
+    // socket.close();
+    // Enter queue again.
+    enterQueue();
   }
 });

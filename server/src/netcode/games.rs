@@ -8,10 +8,13 @@ use tokio_tungstenite::tungstenite::Message;
 
 use crate::{
     game::Game,
-    netcode::net::{Packet, PeerMap, SharedPlayerInfo},
+    netcode::{
+        anticheat,
+        net::{Packet, PeerMap, SharedPlayerInfo},
+    },
 };
 
-type GameData = (Arc<Game>, SocketAddr, SocketAddr);
+type GameData = (Arc<Mutex<Game>>, SocketAddr, SocketAddr);
 
 #[derive(Default, Clone)]
 pub struct Games {
@@ -32,7 +35,7 @@ impl Games {
         self.data
             .lock()
             .unwrap()
-            .push((Arc::new(game), peers.0.0, peers.1.0));
+            .push((Arc::new(Mutex::new(game)), peers.0.0, peers.1.0));
     }
 
     pub fn remove(&self, peers: (SocketAddr, SocketAddr)) -> Option<usize> {
@@ -96,7 +99,7 @@ impl Games {
         clippy::significant_drop_tightening,
         reason = "We can't drop `game_peers` here."
     )]
-    pub fn get_game_from_peer(&self, peer: SocketAddr) -> Option<Arc<Game>> {
+    pub fn get_game_from_peer(&self, peer: SocketAddr) -> Option<Arc<Mutex<Game>>> {
         let game_peers = self.data.lock().unwrap();
         let peers = game_peers.iter().find(|x| x.1 == peer || x.2 == peer)?;
         Some(peers.0.clone())
@@ -109,24 +112,74 @@ impl Games {
 
     pub fn handle_client_packet(&self, peer_map: &PeerMap, peer: SocketAddr, packet: &Packet) {
         let Some(game) = self.get_game_from_peer(peer) else {
-            log!(Level::Error, "Error: Could not get game from peer.");
+            log!(Level::Error, "Could not get game from peer.");
             return;
         };
 
+        if !anticheat::check(&game, peer_map, peer, packet) {
+            return;
+        }
+
+        if packet.packet_type == "end_turn" {
+            let mut game_lock = game.lock().unwrap();
+            log!(
+                Level::Debug,
+                "Ending turn {} ({})",
+                game_lock.turn,
+                game_lock.get_current_player().info.lock().unwrap().username
+            );
+            game_lock.end_turn();
+            drop(game_lock);
+
+            // Repeat packet to both clients.
+            self.send_message_by_peer(
+                peer_map,
+                peer,
+                &Message::Text(serde_json::to_string(&packet).unwrap().into()),
+            );
+            return;
+        }
+
+        // TODO: Replace with something other than echo packet :)
         let json = r#"
             {
-                "type": "test",
+                "type": "echo",
                 "data": {
-                    "message": "some packet sent",
+                    "from_peer": "replace me",
+                    "from_player": "replace me",
+                    "packet": "replace me",
                     "game_id": "replace me"
                 }
             }
         "#;
         let mut response_packet: Packet = serde_json::from_str(json).unwrap();
         response_packet.data.insert(
-            "game_id".into(),
-            serde_json::Value::String(game.id.to_string()),
+            "from_peer".into(),
+            serde_json::Value::String(peer.to_string()),
         );
+        let game_lock = game.lock().unwrap();
+        response_packet.data.insert(
+            "from_player".into(),
+            serde_json::Value::String(
+                game_lock
+                    .get_player_from_peer(peer)
+                    .unwrap()
+                    .info
+                    .lock()
+                    .unwrap()
+                    .username
+                    .clone(),
+            ),
+        );
+        response_packet.data.insert(
+            "packet".into(),
+            serde_json::Value::String(packet.packet_type.clone()),
+        );
+        response_packet.data.insert(
+            "game_id".into(),
+            serde_json::Value::String(game_lock.id.to_string()),
+        );
+        drop(game_lock);
 
         self.send_message_by_peer(
             peer_map,
