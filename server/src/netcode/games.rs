@@ -1,26 +1,36 @@
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
+    time::SystemTime,
 };
 
 use tokio_tungstenite::tungstenite::Message;
 
-use crate::netcode::net::PeerMap;
+use crate::{
+    game::Game,
+    netcode::net::{Packet, PeerMap},
+};
 
 #[derive(Default, Clone)]
 pub struct Games {
     // TODO: This should be the current ongoing games between two peers.
-    pub data: Arc<Mutex<Vec<(SocketAddr, SocketAddr)>>>,
+    pub data: Arc<Mutex<Vec<(Arc<Game>, SocketAddr, SocketAddr)>>>,
 }
 
 impl Games {
     pub fn add(&self, peers: (SocketAddr, SocketAddr)) {
-        self.data.lock().unwrap().push(peers);
+        let game = Game::new("en".into(), "to".into());
+        self.data
+            .lock()
+            .unwrap()
+            .push((Arc::new(game), peers.0, peers.1));
     }
 
     pub fn remove(&self, peers: (SocketAddr, SocketAddr)) -> Option<usize> {
         let mut data = self.data.lock().unwrap();
-        let queue_index = data.iter().position(|x| *x == peers)?;
+        let queue_index = data
+            .iter()
+            .position(|x| x.1 == peers.0 || x.1 == peers.1 || x.2 == peers.0 || x.2 == peers.1)?;
         data.remove(queue_index);
         drop(data);
         Some(queue_index)
@@ -28,10 +38,17 @@ impl Games {
 
     pub fn remove_by_peer(&self, peer: SocketAddr) -> Option<usize> {
         let mut data = self.data.lock().unwrap();
-        let queue_index = data.iter().position(|x| x.0 == peer || x.1 == peer)?;
+        let queue_index = data.iter().position(|x| x.1 == peer || x.2 == peer)?;
         data.remove(queue_index);
         drop(data);
         Some(queue_index)
+    }
+
+    pub fn get_opposing_peer(&self, peer: SocketAddr) -> Option<SocketAddr> {
+        let game_peers = self.data.lock().unwrap();
+        let peers = game_peers.iter().find(|x| x.1 == peer || x.2 == peer)?;
+        let opposing_peer = if peers.1 == peer { peers.2 } else { peers.1 };
+        Some(opposing_peer)
     }
 
     /// Send a message to all peers connected to the same game as `peer`.
@@ -42,12 +59,12 @@ impl Games {
         message: &Message,
     ) -> Option<()> {
         let game_peers = self.data.lock().unwrap();
-        let peers = game_peers.iter().find(|x| x.0 == peer || x.1 == peer)?;
+        let peers = game_peers.iter().find(|x| x.1 == peer || x.2 == peer)?;
 
         let map_peers = peer_map.lock().unwrap();
         let sinks = map_peers
             .iter()
-            .filter(|(addr, _)| *addr == &peers.0 || *addr == &peers.1)
+            .filter(|(addr, _)| *addr == &peers.1 || *addr == &peers.2)
             .map(|(_, sink)| sink);
 
         for sink in sinks {
@@ -55,5 +72,44 @@ impl Games {
         }
 
         Some(())
+    }
+
+    pub fn get_game_from_peer(&self, peer: SocketAddr) -> Option<Arc<Game>> {
+        let game_peers = self.data.lock().unwrap();
+        let peers = game_peers.iter().find(|x| x.1 == peer || x.2 == peer)?;
+        Some(peers.0.clone())
+    }
+
+    pub fn handle_client_packet(&self, peer_map: &PeerMap, peer: SocketAddr, packet: Packet) {
+        println!("Handling packet {packet:?} from {peer}");
+
+        let game = match self.get_game_from_peer(peer) {
+            Some(game) => game,
+            None => {
+                println!("Error: Could not get game from peer.");
+                return;
+            }
+        };
+
+        let json = r#"
+            {
+                "type": "test",
+                "data": {
+                    "message": "some packet sent",
+                    "game_id": "replace me"
+                }
+            }
+        "#;
+        let mut packet: Packet = serde_json::from_str(json).unwrap();
+        packet.data.insert(
+            "game_id".into(),
+            serde_json::Value::String(game.id.to_string()),
+        );
+
+        self.send_message_by_peer(
+            peer_map,
+            peer,
+            &Message::Text(serde_json::to_string(&packet).unwrap().into()),
+        );
     }
 }

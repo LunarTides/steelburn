@@ -8,7 +8,7 @@ mod netcode;
 mod player;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let game = Game::new("test".to_string(), "En".to_string(), "To".to_string());
+    let game = Game::new("En".to_string(), "To".to_string());
     let sheep = Card {
         owner: &game.player1,
         name: "Sheep".into(),
