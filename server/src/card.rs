@@ -8,7 +8,9 @@ pub struct Card<'a> {
 }
 
 impl Display for Card<'_> {
+    #[allow(clippy::significant_drop_tightening)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} belonging to {}", self.name, self.owner.name)
+        let info_lock = self.owner.info.lock().unwrap();
+        write!(f, "{} belonging to {}", self.name, info_lock.username)
     }
 }

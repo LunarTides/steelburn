@@ -7,9 +7,16 @@ socket.addEventListener("open", () => {
   console.log("Connected.");
 
   socket.send(JSON.stringify({
+    type: "player_info",
+    data: {
+      username: Bun.randomUUIDv7(),
+    },
+  }));
+
+  socket.send(JSON.stringify({
     type: "end_turn",
     data: {},
-  }))
+  }));
 });
 socket.addEventListener("close", (event) => {
   console.log(`Disconnected. Reason: ${event.reason} (${event.code})`);

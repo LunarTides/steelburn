@@ -15,7 +15,14 @@ use tokio_tungstenite::tungstenite::Message;
 use crate::netcode::{games::Games, queue::Queue};
 
 type Tx = UnboundedSender<Message>;
-pub type PeerMap = Arc<Mutex<HashMap<SocketAddr, Tx>>>;
+pub type PeerMap = Arc<Mutex<HashMap<SocketAddr, (SharedPlayerInfo, Tx)>>>;
+
+#[derive(Default, Debug)]
+pub struct PlayerInfo {
+    pub username: String,
+}
+
+pub type SharedPlayerInfo = Arc<Mutex<PlayerInfo>>;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Packet {
@@ -24,14 +31,20 @@ pub struct Packet {
     pub data: Map<String, Value>,
 }
 
-async fn try_matchmake(peer_map: PeerMap, queue: Queue, games: Games) {
+fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     if let Some((peer1, peer2)) = queue.try_matchmake() {
         // Two peers have been matchmade.
         println!("Matchmaking for peers {peer1} and {peer2}");
-        games.add((peer1, peer2));
+
+        let peers = peer_map.lock().unwrap();
+        let info_1 = &peers.get(&peer1).unwrap().0;
+        let info_2 = &peers.get(&peer2).unwrap().0;
+
+        games.add(((peer1, info_1.clone()), (peer2, info_2.clone())));
+        drop(peers);
 
         games.send_message_by_peer(
-            &peer_map,
+            peer_map,
             peer1,
             &Message::Text("You have been added into a game.".into()),
         );
@@ -59,10 +72,13 @@ async fn handle_connection(
 
     // Insert the write part of this peer to the peer map.
     let (tx, rx) = unbounded();
-    peer_map.lock().unwrap().insert(addr, tx);
+    peer_map
+        .lock()
+        .unwrap()
+        .insert(addr, (Arc::new(Mutex::new(PlayerInfo::default())), tx));
 
     queue.add(addr);
-    try_matchmake(peer_map.clone(), queue.clone(), games.clone()).await;
+    try_matchmake(&peer_map, &queue, &games);
 
     println!("Queue: {:?}", queue.data);
     println!("Games: {:?}", games.data);
@@ -83,14 +99,14 @@ async fn handle_connection(
             Ok(value) => value,
             Err(err) => {
                 println!("Error when parsing message from {addr}");
-                return future::err(tokio_tungstenite::tungstenite::Error::Utf8(
-                    format!("error when parsing message from {addr}. {err}").into(),
-                ));
+                return future::err(tokio_tungstenite::tungstenite::Error::Utf8(format!(
+                    "error when parsing message from {addr}. {err}"
+                )));
             }
         };
 
         println!("Received a packet from {addr}: {packet:?}");
-        games.handle_client_packet(&peer_map, addr, packet);
+        games.handle_client_packet(&peer_map, addr, &packet);
 
         // let peers = peer_map.lock().unwrap();
 
@@ -117,7 +133,7 @@ async fn handle_connection(
     if let Some(opposing_peer) = games.get_opposing_peer(addr) {
         // Add opposing peer back to queue.
         queue.add(opposing_peer);
-        try_matchmake(peer_map.clone(), queue.clone(), games.clone()).await;
+        try_matchmake(&peer_map, &queue, &games);
     }
 
     println!("{} disconnected", &addr);
