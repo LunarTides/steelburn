@@ -95,6 +95,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
 
         let mut response_packet: Packet = serde_json::from_str(json).unwrap();
         // Put the PlayerInfo into the packet.
+        // TODO: Don't send the `deckcode` field.
         response_packet.data.clone_from(
             serde_json::to_value(info.lock().unwrap().clone())
                 .unwrap()

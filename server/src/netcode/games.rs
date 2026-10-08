@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use futures_util::future::Shared;
 use log::{Level, log};
 use tokio_tungstenite::tungstenite::Message;
 

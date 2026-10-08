@@ -1,10 +1,7 @@
-use std::{
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
+use std::net::SocketAddr;
 
 use crate::{
-    game::{Game, SharedGame},
+    game::SharedGame,
     netcode::net::{Packet, PeerMap},
 };
 
