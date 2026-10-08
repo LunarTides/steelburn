@@ -16,6 +16,11 @@ socket.addEventListener("open", () => {
   }));
 
   socket.send(JSON.stringify({
+    type: "enter_queue",
+    data: {},
+  }));
+
+  socket.send(JSON.stringify({
     type: "end_turn",
     data: {},
   }));
@@ -25,5 +30,16 @@ socket.addEventListener("close", (event) => {
   process.exit(0);
 });
 socket.addEventListener("message", (event) => {
-  console.log(`New message: ${event.data}`);
+  const packet = JSON.parse(event.data);
+  console.log("\n[Server/Packet]");
+  console.log(`${JSON.stringify(packet, null, 2)}`);
+
+  if (packet.type === "end_game") {
+    // socket.close();
+    // Enter queue again.
+    socket.send(JSON.stringify({
+      type: "enter_queue",
+      data: {},
+    }));
+  }
 });

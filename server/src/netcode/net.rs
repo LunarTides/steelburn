@@ -32,6 +32,11 @@ pub struct Packet {
     pub data: Map<String, Value>,
 }
 
+pub fn create_packet_message(json: &str) -> Message {
+    let response_packet: Packet = serde_json::from_str(json).unwrap();
+    Message::Text(serde_json::to_string(&response_packet).unwrap().into())
+}
+
 #[allow(
     clippy::significant_drop_tightening,
     reason = "We can't drop `peers` earlier than this."
@@ -44,11 +49,12 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     // Two peers have been matchmade.
     log!(Level::Info, "Starting game for peers {peer1} and {peer2}");
 
-    let peers = peer_map.lock().unwrap();
-    let (info1, sink1) = &peers.get(&peer1).unwrap();
-    let (info2, sink2) = &peers.get(&peer2).unwrap();
+    let peers_lock = peer_map.lock().unwrap();
+    let (info1, sink1) = &peers_lock.get(&peer1).unwrap();
+    let (info2, sink2) = &peers_lock.get(&peer2).unwrap();
 
     games.add(((peer1, info1.clone()), (peer2, info2.clone())));
+    log!(Level::Debug, "Games: {:?}", games.data);
 
     // let Some(game) = games.get_game_from_peer(peer1) else {
     //     log!(Level::Error, "Error: Could not get game from peer.");
@@ -102,12 +108,16 @@ fn handle_client_packet(
         let mut info_lock = peers.get_mut(&peer).unwrap().0.lock().unwrap();
 
         if let Some(username) = packet.data.get("username") {
-            info_lock.username = username.to_string();
-            log!(Level::Debug, "Renamed {peer} to {username}");
+            info_lock.username = username.as_str().unwrap().into();
+            log!(Level::Debug, "Renamed {peer} to: {}", info_lock.username);
         }
 
         drop(info_lock); // remove when adding more conditions later on
         drop(peers);
+        return;
+    } else if packet.packet_type == "enter_queue" {
+        queue.add(peer);
+        log!(Level::Debug, "Queue: {:?}", queue.data);
         try_matchmake(peer_map, queue, games);
         return;
     }
@@ -115,6 +125,35 @@ fn handle_client_packet(
     if games.peer_in_game(peer) {
         games.handle_client_packet(peer_map, peer, packet);
     }
+}
+
+fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: SocketAddr) {
+    let json = r#"
+        {
+            "type": "end_game",
+            "data": {
+                "reason": "peer_disconnected"
+            }
+        }
+    "#;
+    let message = create_packet_message(json);
+    games.send_message_by_peer(peer_map, addr, &message);
+
+    if let Some(opposing_peer) = games.get_opposing_peer(addr) {
+        log!(
+            Level::Info,
+            "Game between {addr} and {opposing_peer} ended since {addr} disconnected."
+        );
+
+        // Automatically add opposing peer back to queue.
+        // queue.add(opposing_peer);
+        // try_matchmake(&peer_map, &queue, &games);
+    }
+
+    log!(Level::Debug, "{} disconnected", &addr);
+    peer_map.lock().unwrap().remove(&addr);
+    queue.remove(addr);
+    games.remove_by_peer(addr);
 }
 
 async fn handle_connection(
@@ -143,14 +182,13 @@ async fn handle_connection(
         .unwrap()
         .insert(addr, (Arc::new(Mutex::new(PlayerInfo::default())), tx));
 
-    queue.add(addr);
-
-    log!(Level::Debug, "Queue: {:?}", queue.data);
-    log!(Level::Debug, "Games: {:?}", games.data);
-
     let (outgoing, incoming) = ws_stream.split();
 
     let broadcast_incoming = incoming.try_for_each(|msg| {
+        if msg.is_close() {
+            return future::ok(());
+        }
+
         // Peer sent a message.
         let message = match msg.to_text() {
             Ok(message) => message,
@@ -194,22 +232,7 @@ async fn handle_connection(
     future::select(broadcast_incoming, recieve_from_others).await;
 
     // Peer disconnected
-    games.send_message_by_peer(&peer_map, addr, &Message::Text("Peer disconnected".into()));
-    if let Some(opposing_peer) = games.get_opposing_peer(addr) {
-        log!(
-            Level::Info,
-            "Game between {addr} and {opposing_peer} ended since {addr} disconnected."
-        );
-
-        // Add opposing peer back to queue.
-        queue.add(opposing_peer);
-        try_matchmake(&peer_map, &queue, &games);
-    }
-
-    log!(Level::Debug, "{} disconnected", &addr);
-    peer_map.lock().unwrap().remove(&addr);
-    queue.remove(addr);
-    games.remove_by_peer(addr);
+    handle_disconnect(&peer_map, &queue, &games, addr);
 }
 
 #[tokio::main]
