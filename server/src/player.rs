@@ -25,7 +25,7 @@ impl Player {
     ) -> Self {
         let mut info_lock = info.lock().unwrap();
         if info_lock.username.is_empty() {
-            info_lock.username = format!("Anon: {}", Ulid::generate());
+            info_lock.username = format!("Anon {}", Ulid::generate());
         }
         drop(info_lock);
 

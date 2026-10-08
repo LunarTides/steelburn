@@ -14,7 +14,6 @@ impl Queue {
     }
 
     pub fn remove(&self, addr: SocketAddr) -> Option<usize> {
-        // TODO: When a peer disconnects, place their opponent peer back into the queue pool. Actually, maybe not?
         let mut data = self.data.lock().unwrap();
         let queue_index = data.iter().position(|x| *x == addr)?;
         data.remove(queue_index);

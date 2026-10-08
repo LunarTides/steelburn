@@ -1,5 +1,7 @@
 console.log("Connecting...")
 
+const username = process.argv[2];
+
 const port = 56040;
 const socket = new WebSocket(`ws://localhost:${port}`);
 
@@ -9,7 +11,7 @@ socket.addEventListener("open", () => {
   socket.send(JSON.stringify({
     type: "player_info",
     data: {
-      username: Bun.randomUUIDv7(),
+      username: username ?? Bun.randomUUIDv7(),
     },
   }));
 

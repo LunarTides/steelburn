@@ -18,7 +18,7 @@ use crate::netcode::{games::Games, queue::Queue};
 type Tx = UnboundedSender<Message>;
 pub type PeerMap = Arc<Mutex<HashMap<SocketAddr, (SharedPlayerInfo, Tx)>>>;
 
-#[derive(Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct PlayerInfo {
     pub username: String,
 }
@@ -32,27 +32,69 @@ pub struct Packet {
     pub data: Map<String, Value>,
 }
 
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "We can't drop `peers` earlier than this."
+)]
 fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
-    if let Some((peer1, peer2)) = queue.try_matchmake() {
-        // Two peers have been matchmade.
-        log!(Level::Info, "Starting game for peers {peer1} and {peer2}");
+    let Some((peer1, peer2)) = queue.try_matchmake() else {
+        return;
+    };
 
-        let peers = peer_map.lock().unwrap();
-        let info_1 = &peers.get(&peer1).unwrap().0;
-        let info_2 = &peers.get(&peer2).unwrap().0;
+    // Two peers have been matchmade.
+    log!(Level::Info, "Starting game for peers {peer1} and {peer2}");
 
-        games.add(((peer1, info_1.clone()), (peer2, info_2.clone())));
-        drop(peers);
+    let peers = peer_map.lock().unwrap();
+    let (info1, sink1) = &peers.get(&peer1).unwrap();
+    let (info2, sink2) = &peers.get(&peer2).unwrap();
 
-        games.send_message_by_peer(
-            peer_map,
-            peer1,
-            &Message::Text("You have been added into a game.".into()),
+    games.add(((peer1, info1.clone()), (peer2, info2.clone())));
+
+    // let Some(game) = games.get_game_from_peer(peer1) else {
+    //     log!(Level::Error, "Error: Could not get game from peer.");
+    //     return;
+    // };
+
+    log!(Level::Debug, "Sending opponent info");
+    for i in 0..2 {
+        let (info, sink) = if i == 0 {
+            // Send player 2 info to sink 1.
+            (info2, sink1)
+        } else {
+            // Send player 1 info to sink 2.
+            (info1, sink2)
+        };
+
+        let json = r#"
+                {
+                    "type": "opponent_player_info",
+                    "data": {}
+                }
+            "#;
+
+        let mut response_packet: Packet = serde_json::from_str(json).unwrap();
+        // Put the PlayerInfo into the packet.
+        response_packet.data.clone_from(
+            serde_json::to_value(info.lock().unwrap().clone())
+                .unwrap()
+                .as_object()
+                .unwrap(),
         );
+
+        sink.unbounded_send(Message::Text(
+            serde_json::to_string(&response_packet).unwrap().into(),
+        ))
+        .unwrap();
     }
 }
 
-fn handle_client_packet(peer_map: &PeerMap, games: &Games, peer: SocketAddr, packet: &Packet) {
+fn handle_client_packet(
+    peer_map: &PeerMap,
+    queue: &Queue,
+    games: &Games,
+    peer: SocketAddr,
+    packet: &Packet,
+) {
     log!(Level::Debug, "Handling packet {packet:?} from {peer}");
 
     if packet.packet_type == "player_info" {
@@ -61,9 +103,12 @@ fn handle_client_packet(peer_map: &PeerMap, games: &Games, peer: SocketAddr, pac
 
         if let Some(username) = packet.data.get("username") {
             info_lock.username = username.to_string();
-            drop(info_lock); // remove when adding more conditions later on
             log!(Level::Debug, "Renamed {peer} to {username}");
         }
+
+        drop(info_lock); // remove when adding more conditions later on
+        drop(peers);
+        try_matchmake(peer_map, queue, games);
         return;
     }
 
@@ -99,7 +144,6 @@ async fn handle_connection(
         .insert(addr, (Arc::new(Mutex::new(PlayerInfo::default())), tx));
 
     queue.add(addr);
-    try_matchmake(&peer_map, &queue, &games);
 
     log!(Level::Debug, "Queue: {:?}", queue.data);
     log!(Level::Debug, "Games: {:?}", games.data);
@@ -127,7 +171,7 @@ async fn handle_connection(
         };
 
         log!(Level::Debug, "Received a packet from {addr}: {packet:?}");
-        handle_client_packet(&peer_map, &games, addr, &packet);
+        handle_client_packet(&peer_map, &queue, &games, addr, &packet);
 
         // let peers = peer_map.lock().unwrap();
 
