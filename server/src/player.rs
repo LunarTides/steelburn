@@ -1,8 +1,13 @@
-use std::net::SocketAddr;
+use std::{
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+};
 
 use ulid::Ulid;
 
-use crate::netcode::net::SharedPlayerInfo;
+use crate::{card_collection::CardCollection, netcode::net::SharedPlayerInfo};
+
+pub type SharedPlayer = Arc<Mutex<Player>>;
 
 #[derive(Debug)]
 pub struct Player {
@@ -14,6 +19,7 @@ pub struct Player {
     )]
     pub is_starting_player: bool,
     pub info: SharedPlayerInfo,
+    pub deck: CardCollection,
 }
 
 impl Player {
@@ -34,6 +40,16 @@ impl Player {
             peer,
             is_starting_player,
             info,
+            deck: CardCollection::default(),
         }
+    }
+
+    pub fn setup_deck_from_deckcode(player: &SharedPlayer) {
+        let player_clone = player.clone();
+        let mut player_lock = player_clone.lock().unwrap();
+        let info_lock = player_lock.info.lock().unwrap();
+        let deck = CardCollection::from_deckcode(info_lock.deckcode.as_str(), player);
+        drop(info_lock);
+        player_lock.deck = deck;
     }
 }

@@ -4,12 +4,12 @@ use std::{
 };
 
 use crate::{
-    game::Game,
+    game::{Game, SharedGame},
     netcode::net::{Packet, PeerMap},
 };
 
 pub const fn check(
-    game: &Arc<Mutex<Game>>,
+    game: &SharedGame,
     peer_map: &PeerMap,
     peer: SocketAddr,
     packet: &Packet,

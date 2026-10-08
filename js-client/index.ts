@@ -21,6 +21,7 @@ socket.addEventListener("open", () => {
     type: "player_info",
     data: {
       username: username ?? Bun.randomUUIDv7(),
+      deckcode: "debug",
     },
   }));
 

@@ -3,18 +3,19 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use futures_util::future::Shared;
 use log::{Level, log};
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::{
-    game::Game,
+    game::{Game, SharedGame},
     netcode::{
         anticheat,
         net::{Packet, PeerMap, SharedPlayerInfo},
     },
 };
 
-type GameData = (Arc<Mutex<Game>>, SocketAddr, SocketAddr);
+type GameData = (SharedGame, SocketAddr, SocketAddr);
 
 #[derive(Default, Clone)]
 pub struct Games {
@@ -29,7 +30,7 @@ impl Games {
             (SocketAddr, SharedPlayerInfo),
             (SocketAddr, SharedPlayerInfo),
         ),
-    ) -> Arc<Mutex<Game>> {
+    ) -> SharedGame {
         // TODO: Randomize who is player 1 and who is player 2.
         let game = Game::new(peers.0.0, peers.0.1, peers.1.0, peers.1.1);
         let shared_game = Arc::new(Mutex::new(game));
@@ -101,7 +102,7 @@ impl Games {
         clippy::significant_drop_tightening,
         reason = "We can't drop `game_peers` here."
     )]
-    pub fn get_game_from_peer(&self, peer: SocketAddr) -> Option<Arc<Mutex<Game>>> {
+    pub fn get_game_from_peer(&self, peer: SocketAddr) -> Option<SharedGame> {
         let game_peers = self.data.lock().unwrap();
         let peers = game_peers.iter().find(|x| x.1 == peer || x.2 == peer)?;
         Some(peers.0.clone())
@@ -128,7 +129,14 @@ impl Games {
                 Level::Debug,
                 "Ending turn {} ({})",
                 game_lock.turn,
-                game_lock.get_current_player().info.lock().unwrap().username
+                game_lock
+                    .get_current_player()
+                    .lock()
+                    .unwrap()
+                    .info
+                    .lock()
+                    .unwrap()
+                    .username
             );
             game_lock.end_turn();
             drop(game_lock);
@@ -165,6 +173,8 @@ impl Games {
             serde_json::Value::String(
                 game_lock
                     .get_player_from_peer(peer)
+                    .unwrap()
+                    .lock()
                     .unwrap()
                     .info
                     .lock()

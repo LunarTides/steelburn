@@ -13,17 +13,20 @@ use serde_json::{Map, Value};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 
-use crate::netcode::{games::Games, queue::Queue};
+use crate::{
+    netcode::{games::Games, queue::Queue},
+    player::Player,
+};
 
 type Tx = UnboundedSender<Message>;
 pub type PeerMap = Arc<Mutex<HashMap<SocketAddr, (SharedPlayerInfo, Tx)>>>;
+pub type SharedPlayerInfo = Arc<Mutex<PlayerInfo>>;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct PlayerInfo {
     pub username: String,
+    pub deckcode: String,
 }
-
-pub type SharedPlayerInfo = Arc<Mutex<PlayerInfo>>;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Packet {
@@ -55,6 +58,22 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
 
     let game = games.add(((peer1, info1.clone()), (peer2, info2.clone())));
     log!(Level::Debug, "Games: {:?}", games.data);
+
+    // Set decks.
+    let game_lock = game.lock().unwrap();
+    Player::setup_deck_from_deckcode(&game_lock.player1);
+    Player::setup_deck_from_deckcode(&game_lock.player2);
+    log!(
+        Level::Debug,
+        "Deck 1: {:?}",
+        game_lock.player1.lock().unwrap().deck
+    );
+    log!(
+        Level::Debug,
+        "Deck 2: {:?}",
+        game_lock.player2.lock().unwrap().deck
+    );
+    drop(game_lock);
 
     log!(Level::Debug, "Sending opponent info");
     for i in 0..2 {
@@ -106,6 +125,8 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
                 game_lock
                     .get_player_from_peer(peer)
                     .unwrap()
+                    .lock()
+                    .unwrap()
                     .is_starting_player,
             )
             .unwrap(),
@@ -134,6 +155,14 @@ fn handle_client_packet(
         if let Some(username) = packet.data.get("username") {
             info_lock.username = username.as_str().unwrap().into();
             log!(Level::Debug, "Renamed {peer} to: {}", info_lock.username);
+        }
+        if let Some(deckcode) = packet.data.get("deckcode") {
+            info_lock.deckcode = deckcode.as_str().unwrap().into();
+            log!(
+                Level::Debug,
+                "Set {peer}'s deckcode to: {}",
+                info_lock.deckcode
+            );
         }
 
         drop(info_lock); // remove when adding more conditions later on

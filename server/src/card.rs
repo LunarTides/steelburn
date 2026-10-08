@@ -1,16 +1,23 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    sync::{Arc, Mutex},
+};
 
-use crate::player::Player;
+use crate::player::SharedPlayer;
 
-pub struct Card<'a> {
-    pub owner: &'a Player,
+pub type SharedCard = Arc<Mutex<Card>>;
+
+#[derive(Debug)]
+pub struct Card {
+    pub owner: SharedPlayer,
     pub name: String,
 }
 
-impl Display for Card<'_> {
+impl Display for Card {
     #[allow(clippy::significant_drop_tightening)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let info_lock = self.owner.info.lock().unwrap();
+        let owner_lock = self.owner.lock().unwrap();
+        let info_lock = owner_lock.info.lock().unwrap();
         write!(f, "{} belonging to {}", self.name, info_lock.username)
     }
 }

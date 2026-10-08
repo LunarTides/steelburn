@@ -5,6 +5,7 @@ use env_logger::Env;
 use crate::netcode::net::listen;
 
 mod card;
+mod card_collection;
 mod game;
 mod netcode;
 mod player;
