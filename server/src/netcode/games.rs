@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use log::{Level, log};
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::{
@@ -101,23 +102,14 @@ impl Games {
         Some(peers.0.clone())
     }
 
+    pub fn peer_in_game(&self, peer: SocketAddr) -> bool {
+        let game_peers = self.data.lock().unwrap();
+        game_peers.iter().any(|x| x.1 == peer || x.2 == peer)
+    }
+
     pub fn handle_client_packet(&self, peer_map: &PeerMap, peer: SocketAddr, packet: &Packet) {
-        println!("Handling packet {packet:?} from {peer}");
-
-        if packet.packet_type == "player_info" {
-            let mut peers = peer_map.lock().unwrap();
-            let mut info_lock = peers.get_mut(&peer).unwrap().0.lock().unwrap();
-
-            if let Some(username) = packet.data.get("username") {
-                info_lock.username = username.to_string();
-                drop(info_lock); // remove when adding more conditions later on
-                println!("Renamed {peer} to {username}");
-            }
-            return;
-        }
-
         let Some(game) = self.get_game_from_peer(peer) else {
-            println!("Error: Could not get game from peer.");
+            log!(Level::Error, "Error: Could not get game from peer.");
             return;
         };
 

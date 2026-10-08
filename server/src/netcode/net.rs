@@ -7,6 +7,7 @@ use std::{
 
 use futures_channel::mpsc::{UnboundedSender, unbounded};
 use futures_util::{StreamExt, TryStreamExt, future, pin_mut};
+use log::{Level, log};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tokio::net::{TcpListener, TcpStream};
@@ -34,7 +35,7 @@ pub struct Packet {
 fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     if let Some((peer1, peer2)) = queue.try_matchmake() {
         // Two peers have been matchmade.
-        println!("Matchmaking for peers {peer1} and {peer2}");
+        log!(Level::Info, "Starting game for peers {peer1} and {peer2}");
 
         let peers = peer_map.lock().unwrap();
         let info_1 = &peers.get(&peer1).unwrap().0;
@@ -51,6 +52,26 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     }
 }
 
+fn handle_client_packet(peer_map: &PeerMap, games: &Games, peer: SocketAddr, packet: &Packet) {
+    log!(Level::Debug, "Handling packet {packet:?} from {peer}");
+
+    if packet.packet_type == "player_info" {
+        let mut peers = peer_map.lock().unwrap();
+        let mut info_lock = peers.get_mut(&peer).unwrap().0.lock().unwrap();
+
+        if let Some(username) = packet.data.get("username") {
+            info_lock.username = username.to_string();
+            drop(info_lock); // remove when adding more conditions later on
+            log!(Level::Debug, "Renamed {peer} to {username}");
+        }
+        return;
+    }
+
+    if games.peer_in_game(peer) {
+        games.handle_client_packet(peer_map, peer, packet);
+    }
+}
+
 async fn handle_connection(
     peer_map: PeerMap,
     queue: Queue,
@@ -58,17 +79,17 @@ async fn handle_connection(
     raw_stream: TcpStream,
     addr: SocketAddr,
 ) {
-    println!("Incoming TCP connection from: {addr}");
+    log!(Level::Debug, "Incoming TCP connection from: {addr}");
 
     let ws_stream = match tokio_tungstenite::accept_async(raw_stream).await {
         Ok(ws_stream) => ws_stream,
         Err(err) => {
-            println!("Could not accept connection. {err}");
+            log!(Level::Error, "Could not accept connection. {err}");
             return;
         }
     };
 
-    println!("WebSocket connection established: {addr}");
+    log!(Level::Debug, "WebSocket connection established: {addr}");
 
     // Insert the write part of this peer to the peer map.
     let (tx, rx) = unbounded();
@@ -80,8 +101,8 @@ async fn handle_connection(
     queue.add(addr);
     try_matchmake(&peer_map, &queue, &games);
 
-    println!("Queue: {:?}", queue.data);
-    println!("Games: {:?}", games.data);
+    log!(Level::Debug, "Queue: {:?}", queue.data);
+    log!(Level::Debug, "Games: {:?}", games.data);
 
     let (outgoing, incoming) = ws_stream.split();
 
@@ -90,7 +111,7 @@ async fn handle_connection(
         let message = match msg.to_text() {
             Ok(message) => message,
             Err(err) => {
-                println!("Peer {addr} sent invalid message.");
+                log!(Level::Error, "Peer {addr} sent invalid message.");
                 return future::err(err);
             }
         };
@@ -98,15 +119,15 @@ async fn handle_connection(
         let packet: Packet = match serde_json::from_str(message) {
             Ok(value) => value,
             Err(err) => {
-                println!("Error when parsing message from {addr}");
+                log!(Level::Error, "Error when parsing message from {addr}");
                 return future::err(tokio_tungstenite::tungstenite::Error::Utf8(format!(
                     "error when parsing message from {addr}. {err}"
                 )));
             }
         };
 
-        println!("Received a packet from {addr}: {packet:?}");
-        games.handle_client_packet(&peer_map, addr, &packet);
+        log!(Level::Debug, "Received a packet from {addr}: {packet:?}");
+        handle_client_packet(&peer_map, &games, addr, &packet);
 
         // let peers = peer_map.lock().unwrap();
 
@@ -131,12 +152,17 @@ async fn handle_connection(
     // Peer disconnected
     games.send_message_by_peer(&peer_map, addr, &Message::Text("Peer disconnected".into()));
     if let Some(opposing_peer) = games.get_opposing_peer(addr) {
+        log!(
+            Level::Info,
+            "Game between {addr} and {opposing_peer} ended since {addr} disconnected."
+        );
+
         // Add opposing peer back to queue.
         queue.add(opposing_peer);
         try_matchmake(&peer_map, &queue, &games);
     }
 
-    println!("{} disconnected", &addr);
+    log!(Level::Debug, "{} disconnected", &addr);
     peer_map.lock().unwrap().remove(&addr);
     queue.remove(addr);
     games.remove_by_peer(addr);
@@ -152,7 +178,7 @@ pub async fn listen(port: u16) -> Result<(), Box<dyn Error>> {
     let games = Games::default();
 
     let listener = TcpListener::bind(&addr).await?;
-    println!("Listening on {addr}");
+    log!(Level::Info, "Listening on {addr}");
 
     while let Ok((stream, addr)) = listener.accept().await {
         tokio::spawn(handle_connection(
