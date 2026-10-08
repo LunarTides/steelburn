@@ -35,7 +35,7 @@ socket.addEventListener("message", (event) => {
   console.log("\n[Server/Packet]");
   console.log(`${JSON.stringify(packet, null, 2)}`);
 
-  if (packet.type === "opponent_player_info") {
+  if (packet.type === "begin_game") {
     // Testing packet.
     socket.send(JSON.stringify({
       type: "end_turn",

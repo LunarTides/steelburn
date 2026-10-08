@@ -53,24 +53,20 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     let (info1, sink1) = &peers_lock.get(&peer1).unwrap();
     let (info2, sink2) = &peers_lock.get(&peer2).unwrap();
 
-    games.add(((peer1, info1.clone()), (peer2, info2.clone())));
+    let game = games.add(((peer1, info1.clone()), (peer2, info2.clone())));
     log!(Level::Debug, "Games: {:?}", games.data);
-
-    // let Some(game) = games.get_game_from_peer(peer1) else {
-    //     log!(Level::Error, "Error: Could not get game from peer.");
-    //     return;
-    // };
 
     log!(Level::Debug, "Sending opponent info");
     for i in 0..2 {
-        let (info, sink) = if i == 0 {
+        let (peer, info, sink) = if i == 0 {
             // Send player 2 info to sink 1.
-            (info2, sink1)
+            (peer1, info2, sink1)
         } else {
             // Send player 1 info to sink 2.
-            (info1, sink2)
+            (peer2, info1, sink2)
         };
 
+        // Send player info.
         let json = r#"
                 {
                     "type": "opponent_player_info",
@@ -85,6 +81,34 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
                 .unwrap()
                 .as_object()
                 .unwrap(),
+        );
+
+        sink.unbounded_send(Message::Text(
+            serde_json::to_string(&response_packet).unwrap().into(),
+        ))
+        .unwrap();
+
+        // Send `begin_game` packet.
+        let json = r#"
+            {
+                "type": "begin_game",
+                "data": {
+                    "starting_player": false
+                }
+            }
+        "#;
+
+        let mut response_packet: Packet = serde_json::from_str(json).unwrap();
+        let game_lock = game.lock().unwrap();
+        response_packet.data.insert(
+            "starting_player".into(),
+            serde_json::to_value(
+                game_lock
+                    .get_player_from_peer(peer)
+                    .unwrap()
+                    .is_starting_player,
+            )
+            .unwrap(),
         );
 
         sink.unbounded_send(Message::Text(

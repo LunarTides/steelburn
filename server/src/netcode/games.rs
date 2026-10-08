@@ -29,13 +29,15 @@ impl Games {
             (SocketAddr, SharedPlayerInfo),
             (SocketAddr, SharedPlayerInfo),
         ),
-    ) {
+    ) -> Arc<Mutex<Game>> {
         // TODO: Randomize who is player 1 and who is player 2.
         let game = Game::new(peers.0.0, peers.0.1, peers.1.0, peers.1.1);
+        let shared_game = Arc::new(Mutex::new(game));
         self.data
             .lock()
             .unwrap()
-            .push((Arc::new(Mutex::new(game)), peers.0.0, peers.1.0));
+            .push((shared_game.clone(), peers.0.0, peers.1.0));
+        shared_game
     }
 
     pub fn remove(&self, peers: (SocketAddr, SocketAddr)) -> Option<usize> {
