@@ -12,6 +12,7 @@ pub type SharedPlayer = Arc<Mutex<Player>>;
 
 #[derive(Debug, Clone)]
 pub struct Player {
+    // TODO: Replace with a SharedGame reference.
     pub game_id: Ulid,
     pub peer: SocketAddr,
     #[allow(

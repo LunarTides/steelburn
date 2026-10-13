@@ -34,6 +34,19 @@ impl Display for Card {
     }
 }
 
+impl Clone for Card {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            cost: self.cost,
+            id: self.id.clone(),
+            owner: self.owner.clone(),
+            onplay: self.onplay.clone(),
+            hash: Ulid::generate(),
+        }
+    }
+}
+
 impl LuaUserData for Card {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("name", |_, this| Ok(this.name.clone()));
@@ -76,13 +89,6 @@ impl FromLua for Card {
 }
 
 impl Card {
-    pub fn get_owner_name(&self) -> Option<String> {
-        let owner_clone = self.owner.clone()?;
-        let owner_lock = owner_clone.lock().unwrap();
-        let info_lock = owner_lock.info.lock().unwrap();
-        Some(info_lock.username.clone())
-    }
-
     #[allow(
         clippy::significant_drop_tightening,
         reason = "Can't drop `game_lock` while `lua_vm` is in scope."
@@ -95,5 +101,12 @@ impl Card {
         // TODO: Set proper name.
         let card = lua_vm.lua.load(file_content).set_name("card").eval()?;
         Ok(card)
+    }
+
+    pub fn get_owner_name(&self) -> Option<String> {
+        let owner_clone = self.owner.clone()?;
+        let owner_lock = owner_clone.lock().unwrap();
+        let info_lock = owner_lock.info.lock().unwrap();
+        Some(info_lock.username.clone())
     }
 }
