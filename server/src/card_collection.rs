@@ -33,7 +33,8 @@ impl CardCollection {
         if deckcode == "debug" {
             let mut cards = vec![];
 
-            let pack = Pack::import_test(game);
+            // TODO: Don't unwrap pack imports.
+            let pack = Pack::import(game, "../packs/@steelburn/epsilon").unwrap();
             let sheep = pack.cards.get_with_id("Sheep").unwrap();
 
             for _ in 0..30 {
