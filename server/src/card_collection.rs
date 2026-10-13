@@ -1,4 +1,4 @@
-use crate::{card::SharedCard, game::SharedGame, pack::Pack};
+use crate::{card::SharedCard, game::SharedGame, pack::Pack, player::SharedPlayer};
 
 #[derive(Debug, Default, Clone)]
 pub struct CardCollection(Vec<SharedCard>);
@@ -37,8 +37,8 @@ impl CardCollection {
             let sheep = pack.cards.get_with_id("Sheep").unwrap();
 
             for _ in 0..30 {
-                // TODO: Make these sheep unique from each other.
-                cards.push(sheep.clone());
+                let sheep = sheep.lock().unwrap().clone();
+                cards.push(sheep.into());
             }
 
             return Self(cards);
@@ -53,5 +53,12 @@ impl CardCollection {
 
     pub fn get_with_id(&self, id: &str) -> Option<&SharedCard> {
         self.0.iter().find(|card| card.lock().unwrap().id == id)
+    }
+
+    pub fn set_owner(&self, owner: Option<&SharedPlayer>) {
+        for card in &self.0 {
+            let mut card_lock = card.lock().unwrap();
+            card_lock.owner = owner.cloned();
+        }
     }
 }

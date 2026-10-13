@@ -37,7 +37,10 @@ impl Pack {
             card.cost = 1
 
             function card.onplay()
-                print("[Sheep/play] is player1 starting player: " .. player1.is_starting_player())
+                print("[Lua/Sheep/onplay] Play")
+                print("[Lua/Sheep/onplay] Is owner starting player: " .. tostring(owner.is_starting_player))
+                owner.username = owner.username .. " (Lua)"
+                print("[Lua/Sheep/onplay] Changed owner's name to: " .. owner.username)
             end
 
             return card

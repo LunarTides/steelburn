@@ -27,6 +27,14 @@ pub struct Player {
 impl LuaUserData for Player {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("is_starting_player", |_, this| Ok(this.is_starting_player));
+
+        fields.add_field_method_get("username", |_, this| {
+            Ok(this.info.lock().unwrap().username.clone())
+        });
+        fields.add_field_method_set("username", |_, this, val| {
+            this.info.lock().unwrap().username = val;
+            Ok(())
+        });
     }
 }
 
@@ -65,7 +73,8 @@ impl Player {
         let info_clone = player_lock.info.clone();
         let info_lock = info_clone.lock().unwrap();
         drop(player_lock);
-        let deck = CardCollection::from_deckcode(game, info_lock.deckcode.as_str());
+        let mut deck = CardCollection::from_deckcode(game, info_lock.deckcode.as_str());
+        deck.set_owner(Some(&player));
         drop(info_lock);
         let mut player_lock = player.lock().unwrap();
         player_lock.deck = deck;

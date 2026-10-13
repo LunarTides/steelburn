@@ -11,6 +11,12 @@ use crate::player::SharedPlayer;
 
 pub type SharedCard = Arc<Mutex<Card>>;
 
+impl From<Card> for SharedCard {
+    fn from(value: Card) -> Self {
+        Self::new(Mutex::new(value))
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Card {
     pub owner: Option<SharedPlayer>,
@@ -76,12 +82,14 @@ impl FromLua for Card {
         let name = c.get::<String>("name").unwrap();
         let cost = c.get::<i32>("cost").unwrap();
         let id = c.get::<String>("id").unwrap_or_else(|_| name.clone());
+        let onplay = c.get::<LuaFunction>("onplay").ok();
 
         Ok(Self {
             name,
             cost,
             // TODO: Set equal to name if no id.
             id,
+            onplay,
             hash: Ulid::generate(),
             ..Default::default()
         })

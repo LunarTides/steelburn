@@ -303,6 +303,7 @@ pub async fn listen(port: u16) -> Result<(), Box<dyn Error>> {
     log!(Level::Info, "Listening on {addr}");
 
     while let Ok((stream, addr)) = listener.accept().await {
+        // TODO: Handle panics. Delete game / peer from queue. Automatically spawn new task to handle connection and send 'server_panicked' packet.
         tokio::spawn(handle_connection(
             state.clone(),
             queue.clone(),
