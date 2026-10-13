@@ -60,8 +60,14 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     log!(Level::Debug, "Games: {:?}", games.data);
 
     // Set decks.
-    Player::setup_deck_from_deckcode(&game, true);
-    Player::setup_deck_from_deckcode(&game, false);
+    if let Err(err) = Player::setup_deck_from_deckcode(&game, true) {
+        // TODO: We should probably handle this somehow.
+        log!(Level::Error, "{err}");
+    }
+    if let Err(err) = Player::setup_deck_from_deckcode(&game, false) {
+        // TODO: We should probably handle this somehow.
+        log!(Level::Error, "{err}");
+    }
 
     let game_lock = game.lock().unwrap();
     log!(

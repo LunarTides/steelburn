@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use crate::{card::SharedCard, game::SharedGame, pack::Pack, player::SharedPlayer};
 
 #[derive(Debug, Default, Clone)]
@@ -29,12 +31,12 @@ impl CardCollection {
         Self(Vec::new())
     }
 
-    pub fn from_deckcode(game: &SharedGame, deckcode: &str) -> Self {
+    pub fn from_deckcode(game: &SharedGame, deckcode: &str) -> Result<Self, Box<dyn Error>> {
         if deckcode == "debug" {
             let mut cards = vec![];
 
             // TODO: Don't unwrap pack imports.
-            let pack = Pack::import(game, "../packs/@steelburn/epsilon").unwrap();
+            let pack = Pack::import(game, "../packs/@steelburn/epsilon")?;
             let sheep = pack.cards.get_with_id("Sheep").unwrap();
 
             for _ in 0..30 {
@@ -42,7 +44,7 @@ impl CardCollection {
                 cards.push(sheep.into());
             }
 
-            return Self(cards);
+            return Ok(Self(cards));
         }
 
         unimplemented!();

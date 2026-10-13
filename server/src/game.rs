@@ -78,6 +78,7 @@ impl Game {
 
             if let Some(onplay) = &card_lock.onplay {
                 self.lua_vm.prepare_for_card(self, &card_lock).unwrap();
+                // NOTE: This will panic on lua runtime error.
                 onplay.call::<()>(()).unwrap();
             }
             drop(card_lock);

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Mutex};
+use std::{collections::HashMap, error::Error, ffi::OsStr, fs, path::PathBuf, sync::Mutex};
 
 use serde::Deserialize;
 
@@ -97,7 +97,7 @@ impl Pack {
         paths
     }
 
-    pub fn import(game: &SharedGame, path: &str) -> Result<Self, toml::de::Error> {
+    pub fn import(game: &SharedGame, path: &str) -> Result<Self, Box<dyn Error>> {
         let pack_file_contents = fs::read_to_string(PathBuf::from(path).join("pack.toml")).unwrap();
         let mut pack = toml::from_str::<Self>(&pack_file_contents)?;
 
@@ -105,11 +105,9 @@ impl Pack {
         let card_paths = Self::discover_cards(path);
 
         for card_path in card_paths {
-            // TODO: Maybe don't unwrap?
-            let file_content = fs::read_to_string(card_path).unwrap();
+            let file_content = fs::read_to_string(card_path)?;
 
-            // TODO: Handle lua runtime errors.
-            let card = Card::parse_from_file_content(game, file_content).unwrap();
+            let card = Card::parse_from_file_content(game, file_content)?;
             cards.push(SharedCard::new(Mutex::new(card)));
         }
 

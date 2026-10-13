@@ -1,4 +1,5 @@
 use std::{
+    error::Error,
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
@@ -60,7 +61,10 @@ impl Player {
         }
     }
 
-    pub fn setup_deck_from_deckcode(game: &SharedGame, starting_player: bool) {
+    pub fn setup_deck_from_deckcode(
+        game: &SharedGame,
+        starting_player: bool,
+    ) -> Result<(), Box<dyn Error>> {
         let game_lock = game.lock().unwrap();
         let player = if game_lock.player1.lock().unwrap().is_starting_player == starting_player {
             game_lock.player1.clone()
@@ -73,10 +77,12 @@ impl Player {
         let info_clone = player_lock.info.clone();
         let info_lock = info_clone.lock().unwrap();
         drop(player_lock);
-        let mut deck = CardCollection::from_deckcode(game, info_lock.deckcode.as_str());
+        let deck = CardCollection::from_deckcode(game, info_lock.deckcode.as_str())?;
         deck.set_owner(Some(&player));
         drop(info_lock);
         let mut player_lock = player.lock().unwrap();
         player_lock.deck = deck;
+        drop(player_lock);
+        Ok(())
     }
 }
