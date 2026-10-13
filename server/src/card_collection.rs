@@ -53,6 +53,14 @@ impl CardCollection {
         self.0.push(card);
     }
 
+    pub fn pop(&mut self) -> Option<SharedCard> {
+        self.0.pop()
+    }
+
+    pub const fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn get_with_id(&self, id: &str) -> Option<&SharedCard> {
         self.0.iter().find(|card| card.lock().unwrap().id == id)
     }

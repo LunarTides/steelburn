@@ -8,6 +8,7 @@ use crate::{
     game::SharedGame,
 };
 
+// TODO: Maybe don't create the packs for every game. Maybe these should be stored globally in memory at all times.
 #[derive(Deserialize)]
 pub struct Pack {
     #[serde(skip)]

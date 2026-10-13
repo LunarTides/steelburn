@@ -36,10 +36,25 @@ pub struct Packet {
     pub packet_type: String,
     pub data: Map<String, Value>,
 }
+impl Packet {
+    pub const fn new(packet_type: String, data: Map<String, Value>) -> Self {
+        Self { packet_type, data }
+    }
+}
+
+impl From<Packet> for Message {
+    fn from(val: Packet) -> Self {
+        Self::Text(serde_json::to_string(&val).unwrap().into())
+    }
+}
+impl From<&Packet> for Message {
+    fn from(val: &Packet) -> Self {
+        Self::Text(serde_json::to_string(&val).unwrap().into())
+    }
+}
 
 pub fn create_packet_message(json: &str) -> Message {
-    let response_packet: Packet = serde_json::from_str(json).unwrap();
-    Message::Text(serde_json::to_string(&response_packet).unwrap().into())
+    serde_json::from_str::<Packet>(json).unwrap().into()
 }
 
 #[allow(
@@ -58,7 +73,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     let (info1, sink1) = &peers_lock.get(&peer1).unwrap();
     let (info2, sink2) = &peers_lock.get(&peer2).unwrap();
 
-    let game = games.add(((peer1, info1.clone()), (peer2, info2.clone())));
+    let game = games.add(peer_map, ((peer1, info1.clone()), (peer2, info2.clone())));
     log!(Level::Debug, "Games: {:?}", games.data);
 
     // Set decks.
@@ -110,13 +125,10 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
                 .as_object()
                 .unwrap(),
         );
-
-        sink.unbounded_send(Message::Text(
-            serde_json::to_string(&response_packet).unwrap().into(),
-        ))
-        .unwrap();
+        sink.unbounded_send(response_packet.into()).unwrap();
 
         // Send `begin_game` packet.
+        log!(Level::Debug, "Sending 'begin_game' packet");
         let json = r#"
             {
                 "type": "begin_game",
@@ -140,12 +152,13 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
             )
             .unwrap(),
         );
-
-        sink.unbounded_send(Message::Text(
-            serde_json::to_string(&response_packet).unwrap().into(),
-        ))
-        .unwrap();
+        sink.unbounded_send(response_packet.into()).unwrap();
     }
+
+    drop(peers_lock);
+    log!(Level::Debug, "Starting game");
+    let game_lock = game.lock().unwrap();
+    game_lock.start_game();
 }
 
 fn handle_client_packet(
@@ -199,7 +212,7 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
         }
     "#;
     let message = create_packet_message(json);
-    games.send_message_by_peer(peer_map, addr, &message);
+    games.send_message_by_peer(peer_map, addr, message);
 
     if let Some(opposing_peer) = games.get_opposing_peer(addr) {
         log!(

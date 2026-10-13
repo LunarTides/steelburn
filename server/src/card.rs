@@ -1,5 +1,6 @@
 use mlua::FromLua;
 use mlua::prelude::*;
+use serde::Serialize;
 use std::{
     fmt::Display,
     sync::{Arc, Mutex},
@@ -17,12 +18,14 @@ impl From<Card> for SharedCard {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct Card {
+    #[serde(skip)]
     pub owner: Option<SharedPlayer>,
     pub name: String,
     pub cost: i32,
     pub id: String,
+    #[serde(skip)]
     pub onplay: Option<LuaFunction>,
     pub hash: Ulid,
 }

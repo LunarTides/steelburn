@@ -24,13 +24,14 @@ pub struct Games {
 impl Games {
     pub fn add(
         &self,
+        peer_map: &PeerMap,
         peers: (
             (SocketAddr, SharedPlayerInfo),
             (SocketAddr, SharedPlayerInfo),
         ),
     ) -> SharedGame {
         // TODO: Randomize who is player 1 and who is player 2.
-        let game = Game::new(peers.0.0, peers.0.1, peers.1.0, peers.1.1);
+        let game = Game::new(peer_map.clone(), peers.0.0, peers.0.1, peers.1.0, peers.1.1);
         let shared_game = Arc::new(Mutex::new(game));
         self.data
             .lock()
@@ -78,7 +79,7 @@ impl Games {
         &self,
         peer_map: &PeerMap,
         peer: SocketAddr,
-        message: &Message,
+        message: Message,
     ) -> Option<()> {
         let game_peers = self.data.lock().unwrap();
         let peers = game_peers.iter().find(|x| x.1 == peer || x.2 == peer)?;
@@ -140,11 +141,7 @@ impl Games {
             drop(game_lock);
 
             // Repeat packet to both clients.
-            self.send_message_by_peer(
-                peer_map,
-                peer,
-                &Message::Text(serde_json::to_string(&packet).unwrap().into()),
-            );
+            self.send_message_by_peer(peer_map, peer, packet.into());
             return;
         }
 
@@ -191,10 +188,6 @@ impl Games {
         );
         drop(game_lock);
 
-        self.send_message_by_peer(
-            peer_map,
-            peer,
-            &Message::Text(serde_json::to_string(&response_packet).unwrap().into()),
-        );
+        self.send_message_by_peer(peer_map, peer, response_packet.into());
     }
 }

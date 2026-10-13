@@ -5,9 +5,15 @@ use std::{
 };
 
 use mlua::prelude::*;
+use serde_json::Map;
 use ulid::Ulid;
 
-use crate::{card_collection::CardCollection, game::SharedGame, netcode::net::SharedPlayerInfo};
+use crate::{
+    card::Card,
+    card_collection::CardCollection,
+    game::{Game, SharedGame},
+    netcode::net::{Packet, SharedPlayerInfo},
+};
 
 pub type SharedPlayer = Arc<Mutex<Player>>;
 
@@ -22,7 +28,12 @@ pub struct Player {
     )]
     pub is_starting_player: bool,
     pub info: SharedPlayerInfo,
+    pub mana: u32,
+    pub empty_mana: u32,
+    pub max_mana: u32,
     pub deck: CardCollection,
+    pub hand: CardCollection,
+    pub board: CardCollection,
 }
 
 impl LuaUserData for Player {
@@ -57,7 +68,12 @@ impl Player {
             peer,
             is_starting_player,
             info,
+            mana: 0,
+            empty_mana: 0,
+            max_mana: 10,
             deck: CardCollection::default(),
+            hand: CardCollection::default(),
+            board: CardCollection::default(),
         }
     }
 
@@ -84,5 +100,62 @@ impl Player {
         player_lock.deck = deck;
         drop(player_lock);
         Ok(())
+    }
+
+    pub fn get_opponent(&self, game: &Game) -> SharedPlayer {
+        if self.is_starting_player {
+            game.player2.clone()
+        } else {
+            game.player1.clone()
+        }
+    }
+
+    pub const fn get_opponent_peer(&self, game: &Game) -> SocketAddr {
+        if self.is_starting_player {
+            game.player2_peer
+        } else {
+            game.player1_peer
+        }
+    }
+
+    pub fn draw_cards(&mut self, game: &Game, amount: u32) -> CardCollection {
+        let mut cards = CardCollection::default();
+
+        for _ in 0..amount {
+            match self.deck.pop() {
+                None => {
+                    // No cards remaining in deck.
+                    // TODO: Apply fatigue.
+                }
+                Some(card) => {
+                    self.hand.push(card.clone());
+                    cards.push(card);
+                }
+            }
+        }
+
+        // Send cards to client.
+        let packet_data_cards: Vec<Card> = cards
+            .clone()
+            .into_iter()
+            .map(|card| card.lock().unwrap().clone())
+            .collect();
+
+        let mut packet_data = Map::new();
+        packet_data.insert(
+            "cards".into(),
+            serde_json::to_value(packet_data_cards).unwrap(),
+        );
+        game.send_packet_to(self.peer, Packet::new("draw_cards".into(), packet_data));
+
+        // Opponent
+        let mut packet_data = Map::new();
+        packet_data.insert("amount".into(), cards.len().into());
+        game.send_packet_to(
+            self.get_opponent_peer(game),
+            Packet::new("opponent_draw_cards".into(), packet_data),
+        );
+
+        cards
     }
 }
