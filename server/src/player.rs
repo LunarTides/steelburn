@@ -1,5 +1,6 @@
 use std::{
     error::Error,
+    fmt::Display,
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
@@ -9,7 +10,7 @@ use serde_json::Map;
 use ulid::Ulid;
 
 use crate::{
-    card::Card,
+    card::{Card, SharedCard},
     card_collection::CardCollection,
     game::{Game, SharedGame},
     netcode::net::{Packet, SharedPlayerInfo},
@@ -138,7 +139,15 @@ impl Player {
         let packet_data_cards: Vec<Card> = cards
             .clone()
             .into_iter()
-            .map(|card| card.lock().unwrap().clone())
+            .map(|card| {
+                let card_lock = card.lock().unwrap();
+                let hash = card_lock.hash;
+
+                let mut clone = card_lock.clone();
+                drop(card_lock);
+                clone.hash = hash;
+                clone
+            })
             .collect();
 
         let mut packet_data = Map::new();
@@ -158,4 +167,39 @@ impl Player {
 
         cards
     }
+
+    pub fn remove_card_from_location(&mut self, card: &SharedCard) {
+        let card_lock = card.lock().unwrap();
+        self.hand.erase_with_hash(card_lock.hash);
+        self.deck.erase_with_hash(card_lock.hash);
+        self.board.erase_with_hash(card_lock.hash);
+    }
+
+    pub fn play_card(&mut self, hash: Ulid) -> Result<(), PlayCardError> {
+        let card = self
+            .hand
+            .get_with_hash(hash)
+            .ok_or_else(|| {
+                PlayCardError(format!(
+                    "The card with hash '{hash}' is not in the player's hand."
+                ))
+            })?
+            .clone();
+
+        self.remove_card_from_location(&card);
+
+        self.board.push(card);
+        Ok(())
+    }
 }
+
+#[derive(Debug)]
+pub struct PlayCardError(String);
+
+impl Display for PlayCardError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Error for PlayCardError {}

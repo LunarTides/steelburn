@@ -1,16 +1,26 @@
 use std::error::Error;
 
-use crate::{card::SharedCard, game::SharedGame, pack::Pack, player::SharedPlayer};
+use ulid::Ulid;
+
+use crate::{
+    card::{Card, SharedCard},
+    game::SharedGame,
+    pack::Pack,
+    player::SharedPlayer,
+};
 
 #[derive(Debug, Default, Clone)]
-pub struct CardCollection(Vec<SharedCard>);
+pub struct CardCollection {
+    cards: Vec<SharedCard>,
+    hashes: Vec<Ulid>,
+}
 
 impl IntoIterator for CardCollection {
     type Item = SharedCard;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.cards.into_iter()
     }
 }
 
@@ -27,8 +37,18 @@ impl FromIterator<SharedCard> for CardCollection {
 }
 
 impl CardCollection {
-    pub const fn new() -> Self {
-        Self(Vec::new())
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    // TODO: Use proper From thingy.
+    pub fn from_vec(vec: Vec<SharedCard>) -> Self {
+        let mut hashes = Vec::new();
+        for card in &vec {
+            hashes.push(card.lock().unwrap().hash);
+        }
+
+        Self { cards: vec, hashes }
     }
 
     pub fn from_deckcode(game: &SharedGame, deckcode: &str) -> Result<Self, Box<dyn Error>> {
@@ -43,30 +63,57 @@ impl CardCollection {
                 cards.push(sheep.into());
             }
 
-            return Ok(Self(cards));
+            return Ok(Self::from_vec(cards));
         }
 
         unimplemented!();
     }
 
     pub fn push(&mut self, card: SharedCard) {
-        self.0.push(card);
+        self.hashes.push(card.lock().unwrap().hash);
+        self.cards.push(card);
     }
 
     pub fn pop(&mut self) -> Option<SharedCard> {
-        self.0.pop()
+        self.hashes.pop();
+        self.cards.pop()
+    }
+
+    pub fn erase(&mut self, val: &Card) {
+        let Some(index) = self
+            .cards
+            .iter()
+            .position(|card| card.lock().unwrap().hash == val.hash)
+        else {
+            return;
+        };
+        self.hashes.remove(index);
+        self.cards.remove(index);
+    }
+
+    pub fn erase_with_hash(&mut self, hash: Ulid) {
+        let Some(index) = self.hashes.iter().position(|h| *h == hash) else {
+            return;
+        };
+        self.hashes.remove(index);
+        self.cards.remove(index);
     }
 
     pub const fn len(&self) -> usize {
-        self.0.len()
+        self.cards.len()
     }
 
     pub fn get_with_id(&self, id: &str) -> Option<&SharedCard> {
-        self.0.iter().find(|card| card.lock().unwrap().id == id)
+        self.cards.iter().find(|card| card.lock().unwrap().id == id)
+    }
+
+    pub fn get_with_hash(&self, hash: Ulid) -> Option<&SharedCard> {
+        let index = self.hashes.iter().position(|h| *h == hash)?;
+        self.cards.get(index)
     }
 
     pub fn set_owner(&self, owner: Option<&SharedPlayer>) {
-        for card in &self.0 {
+        for card in &self.cards {
             let mut card_lock = card.lock().unwrap();
             card_lock.owner = owner.cloned();
         }

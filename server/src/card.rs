@@ -122,4 +122,15 @@ impl Card {
         let info_lock = owner_lock.info.lock().unwrap();
         Some(info_lock.username.clone())
     }
+
+    pub fn remove_from_location(&self) {
+        let Some(owner) = &self.owner else {
+            return;
+        };
+
+        let mut owner_lock = owner.lock().unwrap();
+        owner_lock.hand.erase(self);
+        owner_lock.deck.erase(self);
+        owner_lock.board.erase(self);
+    }
 }

@@ -5,6 +5,7 @@ use std::{
 
 use log::{Level, log};
 use tokio_tungstenite::tungstenite::Message;
+use ulid::Ulid;
 
 use crate::{
     game::{Game, SharedGame},
@@ -112,6 +113,7 @@ impl Games {
         game_peers.iter().any(|x| x.1 == peer || x.2 == peer)
     }
 
+    // TODO: Return a result.
     pub fn handle_client_packet(&self, peer_map: &PeerMap, peer: SocketAddr, packet: &Packet) {
         let Some(game) = self.get_game_from_peer(peer) else {
             log!(Level::Error, "Could not get game from peer.");
@@ -141,6 +143,54 @@ impl Games {
             drop(game_lock);
 
             // Repeat packet to both clients.
+            self.send_message_by_peer(peer_map, peer, packet.into());
+            return;
+        }
+        if packet.packet_type == "play_card" {
+            let Some(hash_value) = packet.data.get("hash") else {
+                log!(
+                    Level::Error,
+                    "'play_card' packet doesn't have a 'hash' data field."
+                );
+                return;
+            };
+            let Some(hash_string) = hash_value.as_str() else {
+                log!(
+                    Level::Error,
+                    "'play_card' packet 'hash' data field is not a string."
+                );
+                return;
+            };
+            let hash_ulid = match Ulid::from_string(hash_string) {
+                Ok(hash_field) => hash_field,
+                Err(err) => {
+                    log!(
+                        Level::Error,
+                        "'play_card' packet 'hash' data field is not proper Ulid. {err}"
+                    );
+                    return;
+                }
+            };
+            log!(Level::Debug, "Playing '{hash_value}'.");
+
+            let game_lock = game.lock().unwrap();
+            let player = game_lock.get_player_from_peer(peer).unwrap();
+            let mut player_lock = player.lock().unwrap();
+            player_lock
+                .play_card(hash_ulid)
+                .unwrap_or_else(|err| log!(Level::Error, "{err}"));
+
+            log!(
+                Level::Debug,
+                "Board for {}: {:?} ({})",
+                player_lock.peer,
+                player_lock.board,
+                player_lock.board.len()
+            );
+
+            // Repeat packet to both clients.
+            // TODO: Change the `hash` field to be an actual card.
+            // TODO: Include the player who played the card in the packet.
             self.send_message_by_peer(peer_map, peer, packet.into());
             return;
         }

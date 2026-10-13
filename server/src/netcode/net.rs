@@ -229,6 +229,7 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
     peer_map.lock().unwrap().remove(&addr);
     queue.remove(addr);
     games.remove_by_peer(addr);
+    log!(Level::Debug, "Games: {:?}", games.data);
 }
 
 async fn handle_connection(
