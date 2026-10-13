@@ -6,6 +6,7 @@ use std::{
 use ulid::Ulid;
 
 use crate::{
+    lua::LuaVM,
     netcode::net::SharedPlayerInfo,
     player::{Player, SharedPlayer},
 };
@@ -18,6 +19,7 @@ pub struct Game {
     pub player1: SharedPlayer,
     pub player2: SharedPlayer,
     pub turn: u64,
+    pub lua_vm: LuaVM,
 }
 
 impl Game {
@@ -43,6 +45,7 @@ impl Game {
             ))),
             id,
             turn: 0,
+            lua_vm: LuaVM::start().unwrap(),
         }
     }
 

@@ -60,9 +60,10 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     log!(Level::Debug, "Games: {:?}", games.data);
 
     // Set decks.
+    Player::setup_deck_from_deckcode(&game, true);
+    Player::setup_deck_from_deckcode(&game, false);
+
     let game_lock = game.lock().unwrap();
-    Player::setup_deck_from_deckcode(&game_lock.player1);
-    Player::setup_deck_from_deckcode(&game_lock.player2);
     log!(
         Level::Debug,
         "Deck 1: {:?}",
@@ -204,7 +205,7 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
         // try_matchmake(&peer_map, &queue, &games);
     }
 
-    log!(Level::Debug, "{} disconnected", &addr);
+    log!(Level::Debug, "{addr} disconnected");
     peer_map.lock().unwrap().remove(&addr);
     queue.remove(addr);
     games.remove_by_peer(addr);

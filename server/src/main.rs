@@ -7,7 +7,9 @@ use crate::netcode::net::listen;
 mod card;
 mod card_collection;
 mod game;
+mod lua;
 mod netcode;
+mod pack;
 mod player;
 
 fn main() -> Result<(), Box<dyn Error>> {

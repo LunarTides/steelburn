@@ -3,13 +3,14 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use mlua::prelude::*;
 use ulid::Ulid;
 
-use crate::{card_collection::CardCollection, netcode::net::SharedPlayerInfo};
+use crate::{card_collection::CardCollection, game::SharedGame, netcode::net::SharedPlayerInfo};
 
 pub type SharedPlayer = Arc<Mutex<Player>>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Player {
     pub game_id: Ulid,
     pub peer: SocketAddr,
@@ -20,6 +21,12 @@ pub struct Player {
     pub is_starting_player: bool,
     pub info: SharedPlayerInfo,
     pub deck: CardCollection,
+}
+
+impl LuaUserData for Player {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
+        fields.add_field_method_get("is_starting_player", |_, this| Ok(this.is_starting_player));
+    }
 }
 
 impl Player {
@@ -44,11 +51,18 @@ impl Player {
         }
     }
 
-    pub fn setup_deck_from_deckcode(player: &SharedPlayer) {
-        let player_clone = player.clone();
-        let mut player_lock = player_clone.lock().unwrap();
+    pub fn setup_deck_from_deckcode(game: &SharedGame, starting_player: bool) {
+        let game_lock = game.lock().unwrap();
+        let player = if game_lock.player1.lock().unwrap().is_starting_player == starting_player {
+            game_lock.player1.clone()
+        } else {
+            game_lock.player2.clone()
+        };
+        drop(game_lock);
+
+        let mut player_lock = player.lock().unwrap();
         let info_lock = player_lock.info.lock().unwrap();
-        let deck = CardCollection::from_deckcode(info_lock.deckcode.as_str(), player);
+        let deck = CardCollection::from_deckcode(game, info_lock.deckcode.as_str());
         drop(info_lock);
         player_lock.deck = deck;
     }
