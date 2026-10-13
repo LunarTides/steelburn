@@ -4,8 +4,10 @@ use std::{
     fmt::Display,
     sync::{Arc, Mutex},
 };
+use ulid::Ulid;
 
-use crate::{lua::LuaVM, player::SharedPlayer};
+use crate::game::SharedGame;
+use crate::player::SharedPlayer;
 
 pub type SharedCard = Arc<Mutex<Card>>;
 
@@ -15,6 +17,8 @@ pub struct Card {
     pub name: String,
     pub cost: i32,
     pub id: String,
+    pub onplay: Option<LuaFunction>,
+    pub hash: Ulid,
 }
 
 impl Display for Card {
@@ -43,6 +47,12 @@ impl LuaUserData for Card {
             this.cost = val;
             Ok(())
         });
+
+        fields.add_field_method_get("onplay", |_, this| Ok(this.onplay.clone()));
+        fields.add_field_method_set("onplay", |_, this, val| {
+            this.onplay = Some(val);
+            Ok(())
+        });
     }
 }
 
@@ -52,14 +62,15 @@ impl FromLua for Card {
 
         let name = c.get::<String>("name").unwrap();
         let cost = c.get::<i32>("cost").unwrap();
-        let id = c.get::<String>("id").unwrap();
+        let id = c.get::<String>("id").unwrap_or_else(|_| name.clone());
 
         Ok(Self {
             name,
             cost,
-            owner: None,
             // TODO: Set equal to name if no id.
             id,
+            hash: Ulid::generate(),
+            ..Default::default()
         })
     }
 }
@@ -72,10 +83,17 @@ impl Card {
         Some(info_lock.username.clone())
     }
 
-    pub fn parse_from_file_content(lua_vm: &LuaVM, file_content: String) -> LuaResult<Self> {
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "Can't drop `game_lock` while `lua_vm` is in scope."
+    )]
+    pub fn parse_from_file_content(game: &SharedGame, file_content: String) -> LuaResult<Self> {
+        let game_lock = game.lock().unwrap();
+        let lua_vm = &game_lock.lua_vm;
+        lua_vm.prepare_for_resource(&game_lock)?;
+
         // TODO: Set proper name.
-        lua_vm.lua.load(file_content).set_name("card").exec()?;
-        let card = lua_vm.lua.globals().get::<Self>("card")?;
+        let card = lua_vm.lua.load(file_content).set_name("card").eval()?;
         Ok(card)
     }
 }

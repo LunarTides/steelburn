@@ -60,10 +60,13 @@ impl Player {
         };
         drop(game_lock);
 
-        let mut player_lock = player.lock().unwrap();
-        let info_lock = player_lock.info.lock().unwrap();
+        let player_lock = player.lock().unwrap();
+        let info_clone = player_lock.info.clone();
+        let info_lock = info_clone.lock().unwrap();
+        drop(player_lock);
         let deck = CardCollection::from_deckcode(game, info_lock.deckcode.as_str());
         drop(info_lock);
+        let mut player_lock = player.lock().unwrap();
         player_lock.deck = deck;
     }
 }

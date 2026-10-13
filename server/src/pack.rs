@@ -30,18 +30,21 @@ impl Pack {
     pub fn import_test(game: &SharedGame) -> Self {
         let mut cards = CardCollection::default();
 
+        // TODO: Actually get file content from cards.
         let file_content = r#"
+            local card = {}
             card.name = "Sheep"
             card.cost = 1
 
-            function card.play()
+            function card.onplay()
                 print("[Sheep/play] is player1 starting player: " .. player1.is_starting_player())
             end
+
+            return card
         "#;
 
-        let game_lock = game.lock().unwrap();
-        let sheep = Card::parse_from_file_content(&game_lock.lua_vm, file_content.into()).unwrap();
-        drop(game_lock);
+        // TODO: Handle lua runtime errors.
+        let sheep = Card::parse_from_file_content(game, file_content.into()).unwrap();
 
         cards.push(SharedCard::new(Mutex::new(sheep)));
 

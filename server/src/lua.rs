@@ -4,7 +4,6 @@ use std::sync::MutexGuard;
 use mlua::prelude::*;
 use mlua::{Lua, Result};
 
-use crate::card::Card;
 use crate::game::Game;
 
 #[derive(Debug)]
@@ -26,8 +25,6 @@ impl LuaVM {
         let player1_lock = game_lock.player1.lock().unwrap();
         globals.set("player1", player1_lock.deref().clone())?;
         drop(player1_lock);
-
-        globals.set("card", Card::default())?;
 
         Ok(())
     }

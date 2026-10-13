@@ -1,0 +1,12 @@
+[pack]
+name = "epsilon"
+description = "The first official pack."
+author = "steelburn"
+version = "0.1.0"
+api_version = "0.1.0"
+license = "GPL-3.0"
+
+[links]
+repository = "https://git.lunartides.dev/LunarTides/steelburn"
+
+[requires]

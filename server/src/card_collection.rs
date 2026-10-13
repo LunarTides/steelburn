@@ -36,9 +36,8 @@ impl CardCollection {
             let pack = Pack::import_test(game);
             let sheep = pack.cards.get_with_id("Sheep").unwrap();
 
-            let game_lock = game.lock().unwrap();
             for _ in 0..30 {
-                game_lock.lua_vm.prepare_for_resource(&game_lock).unwrap();
+                // TODO: Make these sheep unique from each other.
                 cards.push(sheep.clone());
             }
 
