@@ -105,9 +105,16 @@ impl Pack {
         let card_paths = Self::discover_cards(path);
 
         for card_path in card_paths {
-            let file_content = fs::read_to_string(card_path)?;
+            let file_content = fs::read_to_string(&card_path)?;
+            let Some(file_name) = card_path.file_name().unwrap().to_str() else {
+                continue;
+            };
 
-            let card = Card::parse_from_file_content(game, file_content)?;
+            let card = Card::parse_from_file_content(
+                game,
+                file_content,
+                format!("{}/{}/{}", pack.author, pack.name, file_name),
+            )?;
             cards.push(SharedCard::new(Mutex::new(card)));
         }
 

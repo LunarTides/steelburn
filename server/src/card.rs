@@ -87,7 +87,6 @@ impl FromLua for Card {
         Ok(Self {
             name,
             cost,
-            // TODO: Set equal to name if no id.
             id,
             onplay,
             hash: Ulid::generate(),
@@ -101,13 +100,16 @@ impl Card {
         clippy::significant_drop_tightening,
         reason = "Can't drop `game_lock` while `lua_vm` is in scope."
     )]
-    pub fn parse_from_file_content(game: &SharedGame, file_content: String) -> LuaResult<Self> {
+    pub fn parse_from_file_content(
+        game: &SharedGame,
+        file_content: String,
+        file_name: String,
+    ) -> LuaResult<Self> {
         let game_lock = game.lock().unwrap();
         let lua_vm = &game_lock.lua_vm;
         lua_vm.prepare_for_resource(&game_lock)?;
 
-        // TODO: Set proper name.
-        let card = lua_vm.lua.load(file_content).set_name("card").eval()?;
+        let card = lua_vm.lua.load(file_content).set_name(file_name).eval()?;
         Ok(card)
     }
 

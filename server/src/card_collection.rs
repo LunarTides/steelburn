@@ -35,7 +35,6 @@ impl CardCollection {
         if deckcode == "debug" {
             let mut cards = vec![];
 
-            // TODO: Don't unwrap pack imports.
             let pack = Pack::import(game, "../packs/@steelburn/epsilon")?;
             let sheep = pack.cards.get_with_id("Sheep").unwrap();
 

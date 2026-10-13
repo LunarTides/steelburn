@@ -18,7 +18,6 @@ type GameData = (SharedGame, SocketAddr, SocketAddr);
 
 #[derive(Default, Clone)]
 pub struct Games {
-    // TODO: This should be the current ongoing games between two peers.
     pub data: Arc<Mutex<Vec<GameData>>>,
 }
 
