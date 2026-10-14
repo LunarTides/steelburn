@@ -68,6 +68,10 @@ impl Game {
         None
     }
 
+    pub fn is_peer_starting_player(&self, peer: SocketAddr) -> bool {
+        self.player1_peer == peer
+    }
+
     pub fn send_packet(&self, packet: Packet) {
         let peers = [self.player1_peer, self.player2_peer];
 

@@ -141,9 +141,10 @@ impl Games {
                     .username
             );
             game_lock.end_turn();
-            drop(game_lock);
 
             // Repeat packet to both clients.
+            packet.prepare_for_response(game_lock.is_peer_starting_player(peer));
+            drop(game_lock);
             self.send_message_by_peer(peer_map, peer, packet.into());
             return;
         }
@@ -202,11 +203,7 @@ impl Games {
 
             // Repeat packet to both clients.
             // TODO: Add a function to automate this kind of thing.
-            packet.data.clear();
-            packet.data.insert(
-                "starting_player".into(),
-                player_lock.is_starting_player.into(),
-            );
+            packet.prepare_for_response(player_lock.is_starting_player);
             packet
                 .data
                 .insert("card".into(), serde_json::to_value(clone).unwrap());

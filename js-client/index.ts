@@ -6,8 +6,11 @@ const port = 56040;
 const socket = new WebSocket(`ws://localhost:${port}`);
 
 let isInGame = false;
+let isStartingPlayer = false;
 let currentHand = [];
 let opponentHandSize = 0;
+let currentBoard = [];
+let opponentBoard = [];
 
 function enterQueue() {
   socket.send(JSON.stringify({
@@ -42,6 +45,7 @@ socket.addEventListener("message", (event) => {
 
   if (packet.type === "begin_game") {
     isInGame = true;
+    isStartingPlayer = packet.data.is_starting_player;
 
     // Testing packet.
     socket.send(JSON.stringify({
@@ -69,6 +73,17 @@ socket.addEventListener("message", (event) => {
   } else if (packet.type === "opponent_draw_cards") {
     const amount = packet.data.amount;
     opponentHandSize += amount;
+  } else if (packet.type === "play_card") {
+    const isFriendly = packet.data.is_starting_player === isStartingPlayer;
+    const card = packet.data.card;
+
+    if (isFriendly) {
+      currentBoard.push(card);
+      currentHand.splice(currentHand.indexOf(card), 1);
+    } else {
+      opponentBoard.push(card);
+      opponentHandSize -= 1;
+    }
   }
 });
 
@@ -78,4 +93,5 @@ setInterval(() => {
   }
 
   console.log("Hand:", currentHand, "/", opponentHandSize);
+  console.log("Board:", currentBoard, "/", opponentBoard);
 }, 1000);

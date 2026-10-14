@@ -40,6 +40,16 @@ impl Packet {
     pub const fn new(packet_type: String, data: Map<String, Value>) -> Self {
         Self { packet_type, data }
     }
+
+    pub fn prepare_for_response(&mut self, is_starting_player: bool) {
+        self.data.clear();
+        self.data
+            .insert("is_starting_player".into(), is_starting_player.into());
+    }
+
+    pub fn prepare_for_response_no_starting_player(&mut self) {
+        self.data.clear();
+    }
 }
 
 impl From<Packet> for Message {
@@ -133,25 +143,14 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
             {
                 "type": "begin_game",
                 "data": {
-                    "starting_player": false
+                    "is_starting_player": false
                 }
             }
         "#;
 
         let mut response_packet: Packet = serde_json::from_str(json).unwrap();
         let game_lock = game.lock().unwrap();
-        response_packet.data.insert(
-            "starting_player".into(),
-            serde_json::to_value(
-                game_lock
-                    .get_player_from_peer(peer)
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .is_starting_player,
-            )
-            .unwrap(),
-        );
+        response_packet.prepare_for_response(game_lock.is_peer_starting_player(peer));
         sink.unbounded_send(response_packet.into()).unwrap();
     }
 
@@ -170,9 +169,11 @@ fn handle_client_packet(
 ) {
     log!(Level::Debug, "Handling packet {packet:?} from {peer}");
 
+    let mut peers = peer_map.lock().unwrap();
+    let peer_info = peers.get_mut(&peer).unwrap();
+
     if packet.packet_type == "player_info" {
-        let mut peers = peer_map.lock().unwrap();
-        let mut info_lock = peers.get_mut(&peer).unwrap().0.lock().unwrap();
+        let mut info_lock = peer_info.0.lock().unwrap();
 
         if let Some(username) = packet.data.get("username") {
             info_lock.username = username.as_str().unwrap().into();
@@ -187,16 +188,22 @@ fn handle_client_packet(
             );
         }
 
-        drop(info_lock); // remove when adding more conditions later on
-        drop(peers);
+        // Respond.
+        peer_info.1.unbounded_send(packet.into()).unwrap();
         return;
     } else if packet.packet_type == "enter_queue" {
         queue.add(peer);
+
+        // Respond.
+        peer_info.1.unbounded_send(packet.into()).unwrap();
+
+        drop(peers);
         log!(Level::Debug, "Queue: {:?}", queue.data);
         try_matchmake(peer_map, queue, games);
         return;
     }
 
+    drop(peers);
     if games.peer_in_game(peer) {
         games.handle_client_packet(peer_map, peer, packet);
     }
