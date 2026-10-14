@@ -32,7 +32,6 @@ socket.addEventListener("open", () => {
     },
   }));
 
-  enterQueue();
 });
 socket.addEventListener("close", (event) => {
   console.log(`Disconnected. Reason: ${event.reason} (${event.code})`);
@@ -43,7 +42,9 @@ socket.addEventListener("message", (event) => {
   console.log("\n[Server/Packet]");
   console.log(`${JSON.stringify(packet, null, 2)}`);
 
-  if (packet.type === "begin_game") {
+  if (packet.type === "player_info") {
+    enterQueue();
+  } else if (packet.type === "begin_game") {
     isInGame = true;
     isStartingPlayer = packet.data.is_starting_player;
 

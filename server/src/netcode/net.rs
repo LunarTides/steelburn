@@ -192,6 +192,7 @@ fn handle_client_packet(
         peer_info.1.unbounded_send(packet.into()).unwrap();
         return;
     } else if packet.packet_type == "enter_queue" {
+        // TODO: Block player from entering queue if they haven't sent their player info.
         queue.add(peer);
 
         // Respond.
@@ -214,7 +215,7 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
         {
             "type": "end_game",
             "data": {
-                "reason": "peer_disconnected"
+                "reason": "opponent_disconnected"
             }
         }
     "#;
