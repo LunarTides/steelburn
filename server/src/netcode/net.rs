@@ -166,7 +166,7 @@ fn handle_client_packet(
     queue: &Queue,
     games: &Games,
     peer: SocketAddr,
-    packet: &Packet,
+    packet: Packet,
 ) {
     log!(Level::Debug, "Handling packet {packet:?} from {peer}");
 
@@ -285,7 +285,7 @@ async fn handle_connection(
         };
 
         log!(Level::Debug, "Received a packet from {addr}: {packet:?}");
-        handle_client_packet(&peer_map, &queue, &games, addr, &packet);
+        handle_client_packet(&peer_map, &queue, &games, addr, packet);
 
         // let peers = peer_map.lock().unwrap();
 

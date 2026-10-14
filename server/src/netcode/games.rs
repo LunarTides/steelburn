@@ -114,13 +114,14 @@ impl Games {
     }
 
     // TODO: Return a result.
-    pub fn handle_client_packet(&self, peer_map: &PeerMap, peer: SocketAddr, packet: &Packet) {
+    // TODO: Split into multiple functions.
+    pub fn handle_client_packet(&self, peer_map: &PeerMap, peer: SocketAddr, mut packet: Packet) {
         let Some(game) = self.get_game_from_peer(peer) else {
             log!(Level::Error, "Could not get game from peer.");
             return;
         };
 
-        if !anticheat::check(&game, peer_map, peer, packet) {
+        if !anticheat::check(&game, peer_map, peer, &packet) {
             return;
         }
 
@@ -176,9 +177,10 @@ impl Games {
             let game_lock = game.lock().unwrap();
             let player = game_lock.get_player_from_peer(peer).unwrap();
             let mut player_lock = player.lock().unwrap();
-            player_lock
-                .play_card(hash_ulid)
-                .unwrap_or_else(|err| log!(Level::Error, "{err}"));
+            if let Err(err) = player_lock.play_card(hash_ulid) {
+                log!(Level::Error, "{err}");
+                return;
+            }
 
             log!(
                 Level::Debug,
@@ -188,9 +190,27 @@ impl Games {
                 player_lock.board.len()
             );
 
+            let card = player_lock
+                .board
+                .get_with_hash(hash_ulid)
+                .unwrap()
+                .lock()
+                .unwrap();
+            let mut clone = card.clone();
+            clone.hash = card.hash;
+            drop(card);
+
             // Repeat packet to both clients.
-            // TODO: Change the `hash` field to be an actual card.
-            // TODO: Include the player who played the card in the packet.
+            // TODO: Add a function to automate this kind of thing.
+            packet.data.clear();
+            packet.data.insert(
+                "starting_player".into(),
+                player_lock.is_starting_player.into(),
+            );
+            packet
+                .data
+                .insert("card".into(), serde_json::to_value(clone).unwrap());
+
             self.send_message_by_peer(peer_map, peer, packet.into());
             return;
         }
