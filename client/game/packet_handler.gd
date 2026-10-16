@@ -8,7 +8,6 @@ func _ready() -> void:
 
 
 func _on_packet_recieved(packet: Packet):
-	print(packet.type)
 	var f = get(packet.type)
 	if f:
 		f.call(packet)

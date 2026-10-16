@@ -37,12 +37,13 @@ func _on_connect_button_pressed() -> void:
 	Socket.connect_to(selected)
 	Socket.connected.connect(func(_server: Server):
 		# TODO: Allow player to customize this.
+		# TODO: Don't send if it hasn't been changed since last time.
 		var packet = Packet.from({
 			"type": "player_info",
 			"data": {
 				"deckcode": "debug",
-				"username": "en",
+				#"username": "en",
 			},
 		})
 		Socket.send_packet(packet)
-	)
+	, CONNECT_ONE_SHOT)

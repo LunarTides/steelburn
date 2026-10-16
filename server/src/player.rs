@@ -58,12 +58,6 @@ impl Player {
         is_starting_player: bool,
         info: SharedPlayerInfo,
     ) -> Self {
-        let mut info_lock = info.lock().unwrap();
-        if info_lock.username.is_empty() {
-            info_lock.username = format!("Anon {}", Ulid::generate());
-        }
-        drop(info_lock);
-
         Self {
             game_id,
             peer,

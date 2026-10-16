@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cjvekv01g43v3" path="res://game/game_node.gd" id="1_h7iqs"]
 [ext_resource type="PackedScene" uid="uid://cu4ssj05rminf" path="res://game/card/cardo.tscn" id="1_l1rk1"]
 [ext_resource type="Script" uid="uid://dgold26q470l7" path="res://game/player_hand.gd" id="1_vasa2"]
+[ext_resource type="PackedScene" uid="uid://pd5dv7ndga7s" path="res://game/game_ui.tscn" id="2_dxrkv"]
 [ext_resource type="PackedScene" uid="uid://b612pe5kfmsno" path="res://game/end_turn_button.tscn" id="4_4fuuu"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_mq7fr"]
@@ -34,6 +35,8 @@ size = Vector2(20, 7)
 [node name="Game" type="Node3D" unique_id=1283350713 node_paths=PackedStringArray("camera")]
 script = ExtResource("1_h7iqs")
 camera = NodePath("Camera3D")
+
+[node name="GameUI" parent="." unique_id=795391810 instance=ExtResource("2_dxrkv")]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1131611619]
 environment = SubResource("Environment_vasa2")

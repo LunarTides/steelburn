@@ -26,6 +26,7 @@ func _process(delta):
 		
 		while socket.get_available_packet_count():
 			var json = socket.get_packet().get_string_from_utf8()
+			print(json)
 			var packet = Packet.from(JSON.parse_string(json))
 			packed_recieved.emit(packet)
 	elif state == WebSocketPeer.STATE_CLOSING:
@@ -46,7 +47,6 @@ func connect_to(srv: Server):
 	is_connecting_to_server = true
 	server = srv
 	# TODO: Add timeout.
-	print(server.secure, server.address)
 	socket.connect_to_url("%s://%s" % ["wss" if server.secure else "ws", server.address])
 
 

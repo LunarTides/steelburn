@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
+use ulid::Ulid;
 
 use crate::{
     netcode::{games::Games, queue::Queue},
@@ -127,15 +128,15 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
                 }
             "#;
 
-        let mut response_packet: Packet = serde_json::from_str(json).unwrap();
+        let mut packet: Packet = serde_json::from_str(json).unwrap();
         // Put the PlayerInfo into the packet.
-        response_packet.data.clone_from(
+        packet.data.clone_from(
             serde_json::to_value(info.lock().unwrap().clone())
                 .unwrap()
                 .as_object()
                 .unwrap(),
         );
-        sink.unbounded_send(response_packet.into()).unwrap();
+        sink.unbounded_send(packet.into()).unwrap();
 
         // Send `begin_game` packet.
         log!(Level::Debug, "Sending 'begin_game' packet");
@@ -148,10 +149,10 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
             }
         "#;
 
-        let mut response_packet: Packet = serde_json::from_str(json).unwrap();
+        let mut packet: Packet = serde_json::from_str(json).unwrap();
         let game_lock = game.lock().unwrap();
-        response_packet.prepare_for_response(game_lock.is_peer_starting_player(peer));
-        sink.unbounded_send(response_packet.into()).unwrap();
+        packet.prepare_for_response(game_lock.is_peer_starting_player(peer));
+        sink.unbounded_send(packet.into()).unwrap();
     }
 
     drop(peers_lock);
@@ -165,7 +166,7 @@ fn handle_client_packet(
     queue: &Queue,
     games: &Games,
     peer: SocketAddr,
-    packet: Packet,
+    mut packet: Packet,
 ) {
     log!(Level::Debug, "Handling packet {packet:?} from {peer}");
 
@@ -189,6 +190,10 @@ fn handle_client_packet(
         }
 
         // Respond.
+        // NOTE: Include the automatically generated username if the packet didn't include one.
+        packet
+            .data
+            .insert("username".into(), info_lock.username.clone().into());
         peer_info.1.unbounded_send(packet.into()).unwrap();
         return;
     } else if packet.packet_type == "enter_queue" {
@@ -258,13 +263,17 @@ async fn handle_connection(
     };
 
     log!(Level::Debug, "WebSocket connection established: {addr}");
+    let (tx, rx) = unbounded();
 
     // Insert the write part of this peer to the peer map.
-    let (tx, rx) = unbounded();
+    let player_info = PlayerInfo {
+        username: format!("Anon {}", Ulid::generate()),
+        ..Default::default()
+    };
     peer_map
         .lock()
         .unwrap()
-        .insert(addr, (Arc::new(Mutex::new(PlayerInfo::default())), tx));
+        .insert(addr, (Arc::new(Mutex::new(player_info)), tx));
 
     let (outgoing, incoming) = ws_stream.split();
 
