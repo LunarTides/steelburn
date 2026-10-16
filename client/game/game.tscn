@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cjvekv01g43v3" path="res://game/game_node.gd" id="1_h7iqs"]
 [ext_resource type="PackedScene" uid="uid://cu4ssj05rminf" path="res://game/card/cardo.tscn" id="1_l1rk1"]
 [ext_resource type="Script" uid="uid://dgold26q470l7" path="res://game/player_hand.gd" id="1_vasa2"]
+[ext_resource type="PackedScene" uid="uid://b612pe5kfmsno" path="res://game/end_turn_button.tscn" id="4_4fuuu"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_mq7fr"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -21,7 +22,7 @@ albedo_color = Color(0.3459645, 0.12657624, 4.813075e-08, 1)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_nbr8c"]
 material = SubResource("StandardMaterial3D_utped")
-size = Vector2(500, 500)
+size = Vector2(50, 50)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1rk1"]
 albedo_color = Color(0.24202022, 0.12276151, 4.813075e-08, 1)
@@ -46,6 +47,9 @@ transform = Transform3D(1, 0, 0, 0, 0.017452383, 0.9998477, 0, -0.9998477, 0.017
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1838544640]
 mesh = SubResource("PlaneMesh_nbr8c")
+
+[node name="EndTurnButton" parent="." unique_id=1184278779 instance=ExtResource("4_4fuuu")]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 12, 0, -10)
 
 [node name="Hand" type="Node3D" parent="." unique_id=477168100]
 

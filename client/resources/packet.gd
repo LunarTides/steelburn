@@ -26,10 +26,14 @@ func to_dict() -> Dictionary:
 
 
 func to_json() -> String:
-	return JSON.stringify(self.to_dict())
+	return JSON.stringify(to_dict())
 
 
-func set_properties(object: Object, copy_from = self.data):
+func set_properties(object: Object, copy_from = data):
 	for key in copy_from.keys():
 		var value = copy_from[key]
 		object.set(key, value)
+
+
+func is_response() -> bool:
+	return data.has("is_starting_player")

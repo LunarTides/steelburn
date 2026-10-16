@@ -54,3 +54,8 @@ func opponent_draw_cards(packet: Packet):
 	null_array.fill(null)
 	Game.opponent.hand.append_array(null_array)
 	Game.opponent.hand_changed.emit()
+
+
+func end_turn(packet: Packet):
+	Game.our_turn = not Game.our_turn
+	Game.turn_ended.emit()

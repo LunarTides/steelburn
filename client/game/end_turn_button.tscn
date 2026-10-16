@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://b612pe5kfmsno"]
+
+[ext_resource type="Script" uid="uid://jhv84qeg45qa" path="res://game/end_turn_button.gd" id="1_8ot47"]
+[ext_resource type="PackedScene" uid="uid://bwakpro8juvt4" path="res://assets/models/end_turn/end_turn.blend" id="1_r6qwo"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_nbr8c"]
+size = Vector3(2.2189941, 0.98339844, 1)
+
+[node name="EndTurnButton" type="Area3D" unique_id=1184278779]
+script = ExtResource("1_8ot47")
+
+[node name="Model" parent="." unique_id=466634293 instance=ExtResource("1_r6qwo")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1404260618]
+shape = SubResource("BoxShape3D_nbr8c")
+
+[node name="Label3D" type="Label3D" parent="." unique_id=1336921677]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.056854725, 0.060700655, 0.24221969)
+modulate = Color(0, 0, 0, 1)
+text = "End Turn"
+font_size = 72
+outline_size = 0
+uppercase = true
+
+[connection signal="input_event" from="." to="." method="_on_input_event"]
+[connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="." to="." method="_on_mouse_exited"]

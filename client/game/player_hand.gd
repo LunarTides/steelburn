@@ -29,12 +29,21 @@ func _process(delta: float) -> void:
 
 
 func update():
-	var children = get_children()
+	var children = get_children().filter(func(child: Node3D): return not child.is_queued_for_deletion())
+	
+	if is_opponent:
+		for i in range(player.hand.size() - children.size()):
+			# Create CardoPlaceholder.
+			var cardo_placeholder = CARDO_PLACEHOLDER.instantiate()
+			cardo_placeholder.rotation_degrees.y = 180
+			add_child(cardo_placeholder)
+		layout()
+		return
 	
 	for card in player.hand:
 		var exists = false
 		for child in children:
-			if child == card:
+			if child.card == card:
 				exists = true
 				break
 		
@@ -43,13 +52,6 @@ func update():
 			continue
 		
 		# New card. Create new cardo.
-		if is_opponent:
-			# Create CardoPlaceholder.
-			var cardo_placeholder = CARDO_PLACEHOLDER.instantiate()
-			cardo_placeholder.rotation_degrees.y = 180
-			add_child(cardo_placeholder)
-			continue
-		
 		var cardo: Cardo = CARDO.instantiate()
 		cardo.card = card
 		cardo.player = player
