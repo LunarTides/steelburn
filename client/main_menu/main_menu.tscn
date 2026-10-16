@@ -1,0 +1,176 @@
+[gd_scene format=3 uid="uid://r6pj7x28jibn"]
+
+[ext_resource type="Script" uid="uid://dsxcde1d1moq7" path="res://main_menu/server_list.gd" id="1_3shxk"]
+[ext_resource type="Script" uid="uid://ci0mgvrliy2dw" path="res://main_menu/main_menu.gd" id="1_bws42"]
+[ext_resource type="Script" uid="uid://7sqy2l8p5tdd" path="res://main_menu/server.gd" id="1_oa53l"]
+[ext_resource type="Script" uid="uid://c4gbbya1ls2ex" path="res://resources/server.gd" id="2_d3a7t"]
+
+[sub_resource type="Resource" id="Resource_3shxk"]
+script = ExtResource("2_d3a7t")
+name = "Official"
+address = "steelburn.lunartides.dev:56040"
+secure = true
+players_connected = 4
+max_players_connected = 50
+ping = 20
+metadata/_custom_type_script = "uid://c4gbbya1ls2ex"
+
+[sub_resource type="Resource" id="Resource_oa53l"]
+script = ExtResource("2_d3a7t")
+name = "localhost"
+address = "localhost:56040"
+max_players_connected = 50
+metadata/_custom_type_script = "uid://c4gbbya1ls2ex"
+
+[node name="MainMenu" type="Control" unique_id=671275037 node_paths=PackedStringArray("server_list", "localhost_server_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bws42")
+server_list = NodePath("ServersPanel/VBoxContainer/ServerList")
+localhost_server_button = NodePath("ServersPanel/VBoxContainer/ServerList/Server2")
+
+[node name="ServersPanel" type="Panel" parent="." unique_id=241879241]
+custom_minimum_size = Vector2(960, 480)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ServersPanel" unique_id=278627460]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ServerList" type="VBoxContainer" parent="ServersPanel/VBoxContainer" unique_id=1854626669 node_paths=PackedStringArray("connect_button")]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+script = ExtResource("1_3shxk")
+connect_button = NodePath("../ServerListButtons/ConnectButton")
+
+[node name="Server" type="Button" parent="ServersPanel/VBoxContainer/ServerList" unique_id=472706452 node_paths=PackedStringArray("name_label", "address_label", "connected_label", "ping_label")]
+layout_mode = 2
+toggle_mode = true
+action_mode = 0
+text = "."
+script = ExtResource("1_oa53l")
+server = SubResource("Resource_3shxk")
+name_label = NodePath("HBoxContainer/NameLabel")
+address_label = NodePath("HBoxContainer/AddressLabel")
+connected_label = NodePath("HBoxContainer/ConnectedLabel")
+ping_label = NodePath("HBoxContainer/PingLabel")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ServersPanel/VBoxContainer/ServerList/Server" unique_id=246534905]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -11.5
+offset_right = 480.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="NameLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server/HBoxContainer" unique_id=1180685654]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Official"
+
+[node name="AddressLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server/HBoxContainer" unique_id=963331869]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "steelburn.lunartides.dev:56040"
+horizontal_alignment = 1
+
+[node name="ConnectedLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server/HBoxContainer" unique_id=211591500]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "4/50"
+horizontal_alignment = 1
+
+[node name="PingLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server/HBoxContainer" unique_id=131562030]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "20ms"
+horizontal_alignment = 2
+
+[node name="Server2" type="Button" parent="ServersPanel/VBoxContainer/ServerList" unique_id=279619454 node_paths=PackedStringArray("name_label", "address_label", "connected_label", "ping_label")]
+layout_mode = 2
+toggle_mode = true
+action_mode = 0
+text = "."
+script = ExtResource("1_oa53l")
+server = SubResource("Resource_oa53l")
+name_label = NodePath("HBoxContainer/NameLabel")
+address_label = NodePath("HBoxContainer/AddressLabel")
+connected_label = NodePath("HBoxContainer/ConnectedLabel")
+ping_label = NodePath("HBoxContainer/PingLabel")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ServersPanel/VBoxContainer/ServerList/Server2" unique_id=1046342389]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -11.5
+offset_right = 480.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="NameLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server2/HBoxContainer" unique_id=232683159]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "localhost"
+
+[node name="AddressLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server2/HBoxContainer" unique_id=103086316]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "localhost:56040"
+horizontal_alignment = 1
+
+[node name="ConnectedLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server2/HBoxContainer" unique_id=1576904062]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0/50"
+horizontal_alignment = 1
+
+[node name="PingLabel" type="Label" parent="ServersPanel/VBoxContainer/ServerList/Server2/HBoxContainer" unique_id=514968647]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0ms"
+horizontal_alignment = 2
+
+[node name="ServerListButtons" type="HBoxContainer" parent="ServersPanel/VBoxContainer" unique_id=1139938478]
+layout_mode = 2
+
+[node name="ConnectButton" type="Button" parent="ServersPanel/VBoxContainer/ServerListButtons" unique_id=1508963894]
+layout_mode = 2
+disabled = true
+text = "Connect"
+
+[node name="DirectConnectButton" type="Button" parent="ServersPanel/VBoxContainer/ServerListButtons" unique_id=1376208257]
+layout_mode = 2
+text = "Direct Connect..."
+
+[connection signal="pressed" from="ServersPanel/VBoxContainer/ServerListButtons/ConnectButton" to="ServersPanel/VBoxContainer/ServerList" method="_on_connect_button_pressed"]

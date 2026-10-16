@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://hi33bri48kwu"]
+
+[ext_resource type="Texture2D" uid="uid://dexvmwkaey2w5" path="res://assets/card_cover.png" id="1_jf2tp"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_slat3"]
+albedo_texture = ExtResource("1_jf2tp")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_nbr8c"]
+material = SubResource("StandardMaterial3D_slat3")
+size = Vector2(3, 4.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_nbr8c"]
+size = Vector3(2.5935059, 1, 4)
+
+[node name="CardoPlaceholder" type="Area3D" unique_id=1321672934]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1892671146]
+mesh = SubResource("PlaneMesh_nbr8c")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1519555377]
+shape = SubResource("BoxShape3D_nbr8c")

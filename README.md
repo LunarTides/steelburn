@@ -23,10 +23,10 @@ server component can send packets to activate its client companion. this only wo
 
 ## rough todo list
 
-- [ ] begin work on proper client made in godot
+- [x] begin work on proper client made in godot
 - [x] add `test` deckcode (30 sheep)
 - [x] add card logic using lua (see [oakdom](https://git.lunartides.dev/LunarTides/oakdom))
-- [ ] add first-party pack support
+- [x] add first-party pack support
 - [ ] add server config
 - [ ] packs should have client companions (`/client/`) that only install on the client
 - [ ] pack negotiation screen in queue for when two peers with different packs installed. mark packs as must have, etc

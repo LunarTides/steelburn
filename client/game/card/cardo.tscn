@@ -1,0 +1,68 @@
+[gd_scene format=3 uid="uid://cu4ssj05rminf"]
+
+[ext_resource type="Script" uid="uid://d2kj46lowyocu" path="res://game/card/cardo.gd" id="1_t0jh0"]
+[ext_resource type="PackedScene" uid="uid://cnbr55kp4utlx" path="res://assets/models/card.blend" id="2_eynao"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_t0jh0"]
+size = Vector3(3.1, 2, 6.685)
+
+[node name="Cardo" type="Area3D" unique_id=1321672934 node_paths=PackedStringArray("model", "collision_shape", "name_label", "text_label", "cost_label", "attack_label", "health_label", "tribe_label")]
+script = ExtResource("1_t0jh0")
+model = NodePath("Model")
+collision_shape = NodePath("CollisionShape3D")
+name_label = NodePath("Labels/NameLabel")
+text_label = NodePath("Labels/TextLabel")
+cost_label = NodePath("Labels/CostLabel")
+attack_label = NodePath("Labels/AttackLabel")
+health_label = NodePath("Labels/HealthLabel")
+tribe_label = NodePath("Labels/TribeLabel")
+
+[node name="Model" parent="." unique_id=80747992 instance=ExtResource("2_eynao")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1519555377]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.8395002)
+shape = SubResource("BoxShape3D_t0jh0")
+
+[node name="Labels" type="Node3D" parent="." unique_id=644592840]
+
+[node name="NameLabel" type="Label3D" parent="Labels" unique_id=1810229271]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.2694322, -0.044315457)
+text = "Sheep"
+font_size = 48
+
+[node name="TextLabel" type="Label3D" parent="Labels" unique_id=2082087055]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -1.3249886, 0.11721122, 0.46270406)
+modulate = Color(0.10762819, 0.10762819, 0.107628174, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "This is a test card which has some amount of text which is interesting.
+
+Yepp"
+font_size = 48
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 3
+width = 535.0
+
+[node name="CostLabel" type="Label3D" parent="Labels" unique_id=218108850]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -1.3254416, 0.21281397, -2.0439444)
+text = "0"
+font_size = 96
+
+[node name="AttackLabel" type="Label3D" parent="Labels" unique_id=578211709]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -1.2291937, 0.21281397, 1.924056)
+text = "1"
+font_size = 96
+
+[node name="HealthLabel" type="Label3D" parent="Labels" unique_id=1639965032]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 1.3903487, 0.43721926, 1.924056)
+text = "1"
+font_size = 96
+
+[node name="TribeLabel" type="Label3D" parent="Labels" unique_id=241134728]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.2, 1.8924124)
+text = "Minion"
+font_size = 48
+
+[connection signal="input_event" from="." to="." method="_on_input_event"]
+[connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="." to="." method="_on_mouse_exited"]

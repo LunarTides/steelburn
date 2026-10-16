@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://buos5pg3t5ke2"]
+
+[ext_resource type="Script" uid="uid://cjvekv01g43v3" path="res://game/game_node.gd" id="1_h7iqs"]
+[ext_resource type="PackedScene" uid="uid://cu4ssj05rminf" path="res://game/card/cardo.tscn" id="1_l1rk1"]
+[ext_resource type="Script" uid="uid://dgold26q470l7" path="res://game/player_hand.gd" id="1_vasa2"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_mq7fr"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_l1rk1"]
+sky_material = SubResource("ProceduralSkyMaterial_mq7fr")
+
+[sub_resource type="Environment" id="Environment_vasa2"]
+background_mode = 2
+sky = SubResource("Sky_l1rk1")
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_utped"]
+albedo_color = Color(0.3459645, 0.12657624, 4.813075e-08, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_nbr8c"]
+material = SubResource("StandardMaterial3D_utped")
+size = Vector2(500, 500)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1rk1"]
+albedo_color = Color(0.24202022, 0.12276151, 4.813075e-08, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_utped"]
+material = SubResource("StandardMaterial3D_l1rk1")
+size = Vector2(20, 7)
+
+[node name="Game" type="Node3D" unique_id=1283350713 node_paths=PackedStringArray("camera")]
+script = ExtResource("1_h7iqs")
+camera = NodePath("Camera3D")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1131611619]
+environment = SubResource("Environment_vasa2")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2108638535]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=686876390]
+transform = Transform3D(1, 0, 0, 0, 0.017452383, 0.9998477, 0, -0.9998477, 0.017452383, 0, 11, -10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1838544640]
+mesh = SubResource("PlaneMesh_nbr8c")
+
+[node name="Hand" type="Node3D" parent="." unique_id=477168100]
+
+[node name="PlayerHand" type="Node3D" parent="Hand" unique_id=911849898]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3)
+script = ExtResource("1_vasa2")
+
+[node name="Cardo" parent="Hand/PlayerHand" unique_id=1321672934 instance=ExtResource("1_l1rk1")]
+
+[node name="OpponentHand" type="Node3D" parent="Hand" unique_id=1630918556]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, -18)
+script = ExtResource("1_vasa2")
+is_opponent = true
+
+[node name="Cardo" parent="Hand/OpponentHand" unique_id=1111628114 instance=ExtResource("1_l1rk1")]
+
+[node name="Board" type="Node3D" parent="." unique_id=1362840498]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.061, -10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Board" unique_id=1113374505]
+mesh = SubResource("PlaneMesh_utped")
+
+[node name="Player" type="Node3D" parent="Board" unique_id=511253449]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.75)
+
+[node name="Cardo" parent="Board/Player" unique_id=1485683130 instance=ExtResource("1_l1rk1")]
+render_mode = 1
+
+[node name="Opponent" type="Node3D" parent="Board" unique_id=1657672727]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, -2.75)
+
+[node name="Cardo" parent="Board/Opponent" unique_id=1201278813 instance=ExtResource("1_l1rk1")]
+render_mode = 1
