@@ -32,6 +32,7 @@ func update():
 	var children = get_children().filter(func(child: Node3D): return not child.is_queued_for_deletion())
 	
 	if is_opponent:
+		# TODO: Support revealed cards in the opponent's hand.
 		for i in range(player.hand.size() - children.size()):
 			# Create CardoPlaceholder.
 			var cardo_placeholder = CARDO_PLACEHOLDER.instantiate()

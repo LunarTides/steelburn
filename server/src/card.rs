@@ -24,6 +24,7 @@ pub struct Card {
     pub owner: Option<SharedPlayer>,
     pub name: String,
     pub cost: i32,
+    pub text: String,
     pub id: String,
     #[serde(skip)]
     pub onplay: Option<LuaFunction>,
@@ -48,6 +49,7 @@ impl Clone for Card {
         Self {
             name: self.name.clone(),
             cost: self.cost,
+            text: self.text.clone(),
             id: self.id.clone(),
             owner: self.owner.clone(),
             onplay: self.onplay.clone(),
@@ -70,6 +72,12 @@ impl LuaUserData for Card {
             Ok(())
         });
 
+        fields.add_field_method_get("text", |_, this| Ok(this.text.clone()));
+        fields.add_field_method_set("text", |_, this, val| {
+            this.text = val;
+            Ok(())
+        });
+
         fields.add_field_method_get("onplay", |_, this| Ok(this.onplay.clone()));
         fields.add_field_method_set("onplay", |_, this, val| {
             this.onplay = Some(val);
@@ -83,13 +91,15 @@ impl FromLua for Card {
         let c = value.as_table().unwrap();
 
         let name = c.get::<String>("name").unwrap();
-        let cost = c.get::<i32>("cost").unwrap();
+        let cost = c.get::<i32>("cost").unwrap_or(0);
+        let text = c.get::<String>("text").unwrap_or_else(|_| "".to_string());
         let id = c.get::<String>("id").unwrap_or_else(|_| name.clone());
         let onplay = c.get::<LuaFunction>("onplay").ok();
 
         Ok(Self {
             name,
             cost,
+            text,
             id,
             onplay,
             hash: Ulid::generate(),

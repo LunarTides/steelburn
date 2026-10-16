@@ -51,7 +51,8 @@ func connect_to(srv: Server):
 
 
 func close():
-	if is_connected_to_server:
+	var ready_state = socket.get_ready_state()
+	if is_connected_to_server or (ready_state != WebSocketPeer.STATE_CLOSING and ready_state != WebSocketPeer.STATE_CLOSED):
 		socket.close()
 	is_connected_to_server = false
 	is_connecting_to_server = false

@@ -9,6 +9,10 @@ extends Resource
 	set(value):
 		cost = value
 		emit_changed()
+@export var text: String:
+	set(value):
+		text = value
+		emit_changed()
 @export var id: String:
 	set(value):
 		id = value

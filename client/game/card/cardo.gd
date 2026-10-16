@@ -132,7 +132,7 @@ func update_ui():
 		return
 	
 	name_label.text = card.name
-	#text_label.text = card.name
+	text_label.text = card.text
 	cost_label.text = str(card.cost)
 	#attack_label.text = card.attack
 	#attack_label.text = card.health
