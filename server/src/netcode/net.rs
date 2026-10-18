@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     error::Error,
     net::SocketAddr,
     sync::{Arc, Mutex},
@@ -15,12 +14,11 @@ use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
 
 use crate::{
-    netcode::{games::Games, queue::Queue},
+    netcode::{games::Games, peer_map::PeerMap, queue::Queue},
     player::Player,
 };
 
-type Tx = UnboundedSender<Message>;
-pub type PeerMap = Arc<Mutex<HashMap<SocketAddr, (SharedPlayerInfo, Tx)>>>;
+pub type Tx = UnboundedSender<Message>;
 pub type SharedPlayerInfo = Arc<Mutex<PlayerInfo>>;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
@@ -80,12 +78,13 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     // Two peers have been matchmade.
     log!(Level::Info, "Starting game for peers {peer1} and {peer2}");
 
-    let peers_lock = peer_map.lock().unwrap();
+    // TODO: Is unwrap safe here?
+    let peers_lock = peer_map.get().unwrap();
     let (info1, sink1) = &peers_lock.get(&peer1).unwrap();
     let (info2, sink2) = &peers_lock.get(&peer2).unwrap();
 
     let game = games.add(peer_map, ((peer1, info1.clone()), (peer2, info2.clone())));
-    log!(Level::Debug, "Games: {:?}", games.data);
+    log!(Level::Debug, "Games: {:?}", games);
 
     // Set decks.
     if let Err(err) = Player::setup_deck_from_deckcode(&game, true) {
@@ -136,6 +135,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
                 .as_object()
                 .unwrap(),
         );
+        // FIXME: This will probably poison the peer map.
         sink.unbounded_send(packet.into()).unwrap();
 
         // Send `begin_game` packet.
@@ -152,6 +152,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
         let mut packet: Packet = serde_json::from_str(json).unwrap();
         let game_lock = game.lock().unwrap();
         packet.prepare_for_response(game_lock.is_peer_starting_player(peer));
+        // FIXME: This will probably poison the peer map.
         sink.unbounded_send(packet.into()).unwrap();
     }
 
@@ -170,8 +171,8 @@ fn handle_client_packet(
 ) {
     log!(Level::Debug, "Handling packet {packet:?} from {peer}");
 
-    let mut peers = peer_map.lock().unwrap();
-    let peer_info = peers.get_mut(&peer).unwrap();
+    // TODO: Is unwrap safe here?
+    let peer_info = peer_map.get_entry(&peer).unwrap();
 
     if packet.packet_type == "player_info" {
         let mut info_lock = peer_info.0.lock().unwrap();
@@ -203,13 +204,13 @@ fn handle_client_packet(
         // Respond.
         peer_info.1.unbounded_send(packet.into()).unwrap();
 
-        drop(peers);
-        log!(Level::Debug, "Queue: {:?}", queue.data);
+        drop(peer_info);
+        log!(Level::Debug, "Queue: {:?}", queue);
         try_matchmake(peer_map, queue, games);
         return;
     }
 
-    drop(peers);
+    drop(peer_info);
     if games.peer_in_game(peer) {
         games.handle_client_packet(peer_map, peer, packet);
     }
@@ -239,10 +240,11 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
     }
 
     log!(Level::Debug, "{addr} disconnected");
-    peer_map.lock().unwrap().remove(&addr);
+    // TODO: Is unwrap safe here?
+    peer_map.remove(&addr).unwrap();
     queue.remove(addr);
     games.remove_by_peer(addr);
-    log!(Level::Debug, "Games: {:?}", games.data);
+    log!(Level::Debug, "Games: {:?}", games);
 }
 
 async fn handle_connection(
@@ -270,10 +272,10 @@ async fn handle_connection(
         username: format!("Anon {}", Ulid::generate()),
         ..Default::default()
     };
+    // TODO: Is unwrap safe here?
     peer_map
-        .lock()
-        .unwrap()
-        .insert(addr, (Arc::new(Mutex::new(player_info)), tx));
+        .insert(addr, (Arc::new(Mutex::new(player_info)), tx))
+        .unwrap();
 
     let (outgoing, incoming) = ws_stream.split();
 
@@ -333,7 +335,8 @@ pub async fn listen(port: u16) -> Result<(), Box<dyn Error>> {
     // TODO: Add reconnecting.
     // TODO: Add proper handling for CTRL+C.
     let addr = format!("127.0.0.1:{port}");
-    let state = PeerMap::new(Mutex::new(HashMap::new()));
+    // TODO: Make sure these global mutexes are never poisoned.
+    let peer_map = PeerMap::default();
     let queue = Queue::default();
     let games = Games::default();
 
@@ -341,9 +344,13 @@ pub async fn listen(port: u16) -> Result<(), Box<dyn Error>> {
     log!(Level::Info, "Listening on {addr}");
 
     while let Ok((stream, addr)) = listener.accept().await {
+        assert!(!peer_map.is_poisoned(), "Peer map is poisoned.");
+        assert!(!queue.is_poisoned(), "Queue is poisoned.");
+        assert!(!games.is_poisoned(), "Games is poisoned.");
+
         // TODO: Handle panics. Delete game / peer from queue. Automatically spawn new task to handle connection and send 'server_panicked' packet.
         tokio::spawn(handle_connection(
-            state.clone(),
+            peer_map.clone(),
             queue.clone(),
             games.clone(),
             stream,

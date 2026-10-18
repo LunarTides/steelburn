@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use crate::{
     game::SharedGame,
-    netcode::net::{Packet, PeerMap},
+    netcode::{net::Packet, peer_map::PeerMap},
 };
 
 pub const fn check(

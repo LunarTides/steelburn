@@ -11,15 +11,16 @@ use crate::{
     game::{Game, SharedGame},
     netcode::{
         anticheat,
-        net::{Packet, PeerMap, SharedPlayerInfo},
+        net::{Packet, SharedPlayerInfo},
+        peer_map::PeerMap,
     },
 };
 
 type GameData = (SharedGame, SocketAddr, SocketAddr);
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Games {
-    pub data: Arc<Mutex<Vec<GameData>>>,
+    data: Arc<Mutex<Vec<GameData>>>,
 }
 
 impl Games {
@@ -60,6 +61,10 @@ impl Games {
         Some(queue_index)
     }
 
+    pub fn is_poisoned(&self) -> bool {
+        self.data.is_poisoned()
+    }
+
     #[allow(
         clippy::significant_drop_tightening,
         reason = "We can't drop `game_peers` here."
@@ -85,7 +90,8 @@ impl Games {
         let game_peers = self.data.lock().unwrap();
         let peers = game_peers.iter().find(|x| x.1 == peer || x.2 == peer)?;
 
-        let map_peers = peer_map.lock().unwrap();
+        // TODO: Is unwrap safe here?
+        let map_peers = peer_map.get().unwrap();
         let sinks = map_peers
             .iter()
             .filter(|(addr, _)| *addr == &peers.1 || *addr == &peers.2)

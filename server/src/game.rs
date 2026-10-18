@@ -9,7 +9,10 @@ use ulid::Ulid;
 
 use crate::{
     lua::LuaVM,
-    netcode::net::{Packet, PeerMap, SharedPlayerInfo},
+    netcode::{
+        net::{Packet, SharedPlayerInfo},
+        peer_map::PeerMap,
+    },
     player::{Player, SharedPlayer},
 };
 
@@ -75,7 +78,8 @@ impl Game {
     pub fn send_packet(&self, packet: Packet) {
         let peers = [self.player1_peer, self.player2_peer];
 
-        let map_peers = self.peer_map.lock().unwrap();
+        // TODO: Is unwrap safe here?
+        let map_peers = self.peer_map.get().unwrap();
         let sinks = map_peers
             .iter()
             .filter(|(addr, _)| peers.contains(addr))
@@ -88,7 +92,8 @@ impl Game {
     }
 
     pub fn send_packet_to(&self, peer: SocketAddr, packet: Packet) -> Option<()> {
-        let map_peers = self.peer_map.lock().unwrap();
+        // TODO: Is unwrap safe here?
+        let map_peers = self.peer_map.get().unwrap();
         let sink = &map_peers.iter().find(|(addr, _)| *addr == &peer)?.1.1;
 
         let message: Message = packet.into();

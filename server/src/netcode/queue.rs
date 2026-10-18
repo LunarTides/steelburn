@@ -3,9 +3,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Queue {
-    pub data: Arc<Mutex<Vec<SocketAddr>>>,
+    data: Arc<Mutex<Vec<SocketAddr>>>,
 }
 
 impl Queue {
@@ -19,6 +19,10 @@ impl Queue {
         data.remove(queue_index);
         drop(data);
         Some(queue_index)
+    }
+
+    pub fn is_poisoned(&self) -> bool {
+        self.data.is_poisoned()
     }
 
     pub fn try_matchmake(&self) -> Option<(SocketAddr, SocketAddr)> {
