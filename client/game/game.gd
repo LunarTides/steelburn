@@ -10,6 +10,9 @@ signal turn_ended
 
 @export var player: Player = Player.new()
 @export var opponent: Player = Player.new()
+var starting_player: Player:
+	get:
+		return player if player.is_starting_player else opponent
 
 var packet_handler: GamePacketHandler = GamePacketHandler.new()
 var camera: Camera3D

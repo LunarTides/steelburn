@@ -26,6 +26,9 @@ func begin_game(packet: Packet):
 	Game.player.is_starting_player = is_starting_player
 	Game.opponent.is_starting_player = not is_starting_player
 	
+	# TODO: Don't assume this on client.
+	Game.starting_player.mana = 1
+	
 	print("Game started.")
 	Game.start()
 
@@ -57,6 +60,13 @@ func opponent_draw_cards(packet: Packet):
 
 func end_turn(packet: Packet):
 	Game.our_turn = not Game.our_turn
+	
+	if Game.our_turn:
+		# TODO: Don't assume this on client.
+		Game.player.mana += 1
+	else:
+		Game.opponent.mana += 1
+	
 	Game.turn_ended.emit()
 
 
@@ -65,6 +75,8 @@ func play_card(packet: Packet):
 	packet.set_properties(card, packet.data.card)
 	
 	var player = packet.get_relevant_player()
+	# TODO: Don't assume this on client.
+	player.mana -= card.cost
 	
 	if player.is_opponent:
 		player.hand.pop_back()

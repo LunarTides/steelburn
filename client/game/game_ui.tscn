@@ -2,7 +2,13 @@
 
 [ext_resource type="Script" uid="uid://3h31kq1yarkq" path="res://game/game_ui.gd" id="1_0occc"]
 
-[node name="GameUI" type="Control" unique_id=795391810 node_paths=PackedStringArray("opponent_name", "player_name")]
+[sub_resource type="LabelSettings" id="LabelSettings_0occc"]
+font_size = 32
+font_color = Color(0.20233318, 0.96762556, 0.99999994, 1)
+outline_size = 1
+outline_color = Color(0, 0, 0, 1)
+
+[node name="GameUI" type="Control" unique_id=795391810 node_paths=PackedStringArray("opponent_name", "player_name", "opponent_mana", "player_mana")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,6 +19,8 @@ mouse_filter = 1
 script = ExtResource("1_0occc")
 opponent_name = NodePath("OpponentName")
 player_name = NodePath("PlayerName")
+opponent_mana = NodePath("OpponentMana")
+player_mana = NodePath("PlayerMana")
 
 [node name="OpponentName" type="Label" parent="." unique_id=1460679096]
 layout_mode = 0
@@ -29,3 +37,28 @@ offset_top = -23.0
 offset_right = 40.0
 grow_vertical = 0
 text = "Player"
+
+[node name="OpponentMana" type="Label" parent="." unique_id=674677996]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -44.0
+offset_bottom = 23.0
+grow_horizontal = 0
+text = "Opponent Mana"
+label_settings = SubResource("LabelSettings_0occc")
+
+[node name="PlayerMana" type="Label" parent="." unique_id=947669004]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -23.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "Player Mana"
+label_settings = SubResource("LabelSettings_0occc")

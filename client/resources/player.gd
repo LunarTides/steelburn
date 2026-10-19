@@ -12,6 +12,14 @@ signal board_changed
 	set(value):
 		is_starting_player = value
 		emit_changed()
+@export var mana: int = 0:
+	set(value):
+		mana = value
+		emit_changed()
+@export var empty_mana: int = 0:
+	set(value):
+		mana = value
+		emit_changed()
 
 # NOTE: Elements are either Card or null.
 var hand: Array[Variant]
