@@ -13,7 +13,7 @@ use crate::{
     card::{Card, SharedCard},
     card_collection::CardCollection,
     game::{Game, SharedGame},
-    netcode::net::{Packet, SharedPlayerInfo},
+    netcode::net::{Packet, Poisoned, SharedPlayerInfo},
 };
 
 pub type SharedPlayer = Arc<Mutex<Player>>;
@@ -29,9 +29,9 @@ pub struct Player {
     )]
     pub is_starting_player: bool,
     pub info: SharedPlayerInfo,
-    pub mana: u32,
-    pub empty_mana: u32,
-    pub max_mana: u32,
+    pub mana: i32,
+    pub empty_mana: i32,
+    pub max_mana: i32,
     pub deck: CardCollection,
     pub hand: CardCollection,
     pub board: CardCollection,
@@ -180,10 +180,25 @@ impl Player {
             })?
             .clone();
 
+        // TODO: Is unwrap safe here?
+        if !self.can_afford(&card).unwrap() {
+            return Err(PlayCardError("Can't afford card.".into()));
+        }
+
+        // TODO: Is unwrap safe here?
+        self.reduce_mana(card.lock().unwrap().cost);
         self.remove_card_from_location(&card);
 
         self.board.push(card);
         Ok(())
+    }
+
+    pub fn reduce_mana(&mut self, cost: i32) {
+        self.mana -= cost;
+    }
+
+    pub fn can_afford<'a>(&self, card: &'a SharedCard) -> Result<bool, Poisoned<'a, Card>> {
+        Ok(card.lock()?.cost <= self.mana)
     }
 }
 

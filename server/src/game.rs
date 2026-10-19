@@ -111,6 +111,8 @@ impl Game {
             player.draw_cards(self, draw_amount);
         }
 
+        player1.mana = 1;
+
         log!(
             Level::Debug,
             "Hand Sizes: ({}, {})",
@@ -133,6 +135,7 @@ impl Game {
         let binding = self.get_opposing_player();
         let mut opposing_player = binding.lock().unwrap();
 
+        // TODO: Cap to empty mana.
         current_player.mana = current_player.mana.saturating_add(1);
         current_player.draw_cards(self, 1);
         drop(current_player);

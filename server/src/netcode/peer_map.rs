@@ -2,14 +2,13 @@ use std::{
     collections::HashMap,
     error::Error,
     net::SocketAddr,
-    sync::{Arc, Mutex, MutexGuard, PoisonError},
+    sync::{Arc, Mutex, MutexGuard},
 };
 
-use crate::netcode::net::{SharedPlayerInfo, Tx};
+use crate::netcode::net::{Poisoned, SharedPlayerInfo, Tx};
 
 type Data = HashMap<SocketAddr, (SharedPlayerInfo, Tx)>;
 type SharedData = Arc<Mutex<Data>>;
-type Poisoned<'a> = PoisonError<MutexGuard<'a, Data>>;
 
 #[derive(Default, Clone, Debug)]
 pub struct PeerMap {
@@ -17,7 +16,7 @@ pub struct PeerMap {
 }
 
 impl PeerMap {
-    pub fn get(&self) -> Result<MutexGuard<'_, Data>, Poisoned<'_>> {
+    pub fn get(&self) -> Result<MutexGuard<'_, Data>, Poisoned<'_, Data>> {
         self.data.lock()
     }
 
@@ -41,12 +40,12 @@ impl PeerMap {
         &self,
         peer: SocketAddr,
         info: (SharedPlayerInfo, Tx),
-    ) -> Result<(), Poisoned<'_>> {
+    ) -> Result<(), Poisoned<'_, Data>> {
         self.get()?.insert(peer, info);
         Ok(())
     }
 
-    pub fn remove(&self, peer: &SocketAddr) -> Result<(), Poisoned<'_>> {
+    pub fn remove(&self, peer: &SocketAddr) -> Result<(), Poisoned<'_, Data>> {
         self.data.lock()?.remove(peer);
         Ok(())
     }

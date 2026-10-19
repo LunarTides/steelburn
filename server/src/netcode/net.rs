@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     net::SocketAddr,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, MutexGuard, PoisonError},
 };
 
 use futures_channel::mpsc::{UnboundedSender, unbounded};
@@ -20,6 +20,7 @@ use crate::{
 
 pub type Tx = UnboundedSender<Message>;
 pub type SharedPlayerInfo = Arc<Mutex<PlayerInfo>>;
+pub type Poisoned<'a, T> = PoisonError<MutexGuard<'a, T>>;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct PlayerInfo {
