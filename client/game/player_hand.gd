@@ -33,7 +33,15 @@ func update():
 	
 	if is_opponent:
 		# TODO: Support revealed cards in the opponent's hand.
-		for i in range(player.hand.size() - children.size()):
+		var amount = player.hand.size() - children.size()
+		if amount < 0:
+			# Get rid of excess cards.
+			for i in range(-amount):
+				remove_child(get_child(0))
+			layout()
+			return
+		
+		for i in range(amount):
 			# Create CardoPlaceholder.
 			var cardo_placeholder = CARDO_PLACEHOLDER.instantiate()
 			cardo_placeholder.rotation_degrees.y = 180

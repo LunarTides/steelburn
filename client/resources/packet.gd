@@ -37,3 +37,11 @@ func set_properties(object: Object, copy_from = data):
 
 func is_response() -> bool:
 	return data.has("is_starting_player")
+
+
+func get_relevant_player() -> Player:
+	if not is_response():
+		return
+	
+	var is_starting_player = data.is_starting_player
+	return Game.player if Game.player.is_starting_player == is_starting_player else Game.opponent

@@ -13,6 +13,7 @@ signal turn_ended
 
 var packet_handler: GamePacketHandler = GamePacketHandler.new()
 var camera: Camera3D
+var board: Area3D
 var playing: bool = false
 var our_turn: bool = false
 

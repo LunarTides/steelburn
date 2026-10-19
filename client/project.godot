@@ -31,6 +31,10 @@ window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[global_group]
+
+board=""
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

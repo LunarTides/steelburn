@@ -42,6 +42,7 @@ var hovering: bool = false:
 				position += vector
 			else:
 				position -= vector
+var hovering_over_board: bool = false
 var dragging: bool = false
 
 
@@ -55,6 +56,8 @@ func _ready() -> void:
 	
 	update_ui()
 	card.changed.connect(update_ui)
+	
+	Socket.packed_recieved.connect(_on_packet_recieved)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -73,9 +76,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			drag_started.emit()
 			global_position = Game.camera.project_position(event.global_position, 9.8)
 	elif event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.is_released() and dragging:
+		if event.is_released() and dragging:
 			drag_ended.emit()
 			dragging = false
+			
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				# Check if dragging over board.
+				request_play()
 
 
 func update_model():
@@ -107,8 +114,10 @@ func update_model():
 	frame_mesh.visible = true
 	
 	if render_mode == RenderMode.Board:
-		var attack_vector = Vector3(0.4, 0.05, -2.5)
-		var health_vector = Vector3(-0.5, -0.1, -2.5)
+		#var attack_vector = Vector3(0.4, 0.05, -2.5)
+		#var health_vector = Vector3(-0.5, -0.1, -2.5)
+		var attack_vector = Vector3(0.3, 0.05, -1)
+		var health_vector = Vector3(-0.4, 0, -1)
 		attack_mesh.position += attack_vector
 		attack_label.position += attack_vector
 		health_mesh.position += health_vector
@@ -139,6 +148,16 @@ func update_ui():
 	#attack_label.text = card.tribe
 
 
+func request_play():
+	var packet = Packet.from({
+		"type": "play_card",
+		"data": {
+			"hash": card.hash,
+		},
+	})
+	Socket.send_packet(packet)
+
+
 func _on_mouse_entered() -> void:
 	hovering = true
 	hover_started.emit()
@@ -147,3 +166,21 @@ func _on_mouse_entered() -> void:
 func _on_mouse_exited() -> void:
 	hovering = false
 	hover_ended.emit()
+
+
+func _on_area_entered(area: Area3D) -> void:
+	if area == Game.board:
+		hovering_over_board = true
+
+
+func _on_area_exited(area: Area3D) -> void:
+	if area == Game.board:
+		hovering_over_board = false
+
+
+func _on_packet_recieved(packet: Packet) -> void:
+	if packet.type == "play_card":
+		if packet.data.card.hash != card.hash:
+			return
+		
+		queue_free()

@@ -58,3 +58,19 @@ func opponent_draw_cards(packet: Packet):
 func end_turn(packet: Packet):
 	Game.our_turn = not Game.our_turn
 	Game.turn_ended.emit()
+
+
+func play_card(packet: Packet):
+	var card := Card.new()
+	packet.set_properties(card, packet.data.card)
+	
+	var player = packet.get_relevant_player()
+	
+	if player.is_opponent:
+		player.hand.pop_back()
+		player.hand_changed.emit()
+	else:
+		player.remove_from_location(card)
+	
+	player.board.append(card)
+	player.board_changed.emit()

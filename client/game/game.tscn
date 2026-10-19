@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://dgold26q470l7" path="res://game/player_hand.gd" id="1_vasa2"]
 [ext_resource type="PackedScene" uid="uid://pd5dv7ndga7s" path="res://game/game_ui.tscn" id="2_dxrkv"]
 [ext_resource type="PackedScene" uid="uid://b612pe5kfmsno" path="res://game/end_turn_button.tscn" id="4_4fuuu"]
+[ext_resource type="Script" uid="uid://b11go6xx3oejo" path="res://game/player_board.gd" id="6_dakft"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_mq7fr"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -30,11 +31,15 @@ albedo_color = Color(0.24202022, 0.12276151, 4.813075e-08, 1)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_utped"]
 material = SubResource("StandardMaterial3D_l1rk1")
-size = Vector2(20, 7)
+size = Vector2(20, 7.5)
 
-[node name="Game" type="Node3D" unique_id=1283350713 node_paths=PackedStringArray("camera")]
+[sub_resource type="BoxShape3D" id="BoxShape3D_nbr8c"]
+size = Vector3(20.121338, 0.67663574, 2.1386719)
+
+[node name="Game" type="Node3D" unique_id=1283350713 node_paths=PackedStringArray("camera", "board")]
 script = ExtResource("1_h7iqs")
 camera = NodePath("Camera3D")
+board = NodePath("Board")
 
 [node name="GameUI" parent="." unique_id=795391810 instance=ExtResource("2_dxrkv")]
 
@@ -69,20 +74,27 @@ is_opponent = true
 
 [node name="Cardo" parent="Hand/OpponentHand" unique_id=1111628114 instance=ExtResource("1_l1rk1")]
 
-[node name="Board" type="Node3D" parent="." unique_id=1362840498]
+[node name="Board" type="Area3D" parent="." unique_id=595871867 groups=["board"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.061, -10)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Board" unique_id=1113374505]
 mesh = SubResource("PlaneMesh_utped")
 
-[node name="Player" type="Node3D" parent="Board" unique_id=511253449]
+[node name="PlayerBoard" type="Node3D" parent="Board" unique_id=511253449]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.75)
+script = ExtResource("6_dakft")
 
-[node name="Cardo" parent="Board/Player" unique_id=1485683130 instance=ExtResource("1_l1rk1")]
+[node name="Cardo" parent="Board/PlayerBoard" unique_id=1485683130 instance=ExtResource("1_l1rk1")]
 render_mode = 1
 
-[node name="Opponent" type="Node3D" parent="Board" unique_id=1657672727]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, -2.75)
+[node name="OpponentBoard" type="Node3D" parent="Board" unique_id=1657672727]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.75)
+script = ExtResource("6_dakft")
+is_opponent = true
 
-[node name="Cardo" parent="Board/Opponent" unique_id=1201278813 instance=ExtResource("1_l1rk1")]
+[node name="Cardo" parent="Board/OpponentBoard" unique_id=1201278813 instance=ExtResource("1_l1rk1")]
 render_mode = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Board" unique_id=2068051956]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.28948975, 0)
+shape = SubResource("BoxShape3D_nbr8c")
