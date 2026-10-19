@@ -6,6 +6,7 @@ use std::{
 };
 
 use mlua::prelude::*;
+use serde::Serialize;
 use serde_json::Map;
 use ulid::Ulid;
 
@@ -18,22 +19,28 @@ use crate::{
 
 pub type SharedPlayer = Arc<Mutex<Player>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Player {
     // TODO: Replace with a SharedGame reference.
+    #[serde(skip)]
     pub game_id: Ulid,
+    #[serde(skip)]
     pub peer: SocketAddr,
     #[allow(
         clippy::struct_field_names,
         reason = "Without the 'player' at the end, it would be a bit unclear what this field is used for."
     )]
     pub is_starting_player: bool,
+    #[serde(skip)]
     pub info: SharedPlayerInfo,
     pub mana: i32,
     pub empty_mana: i32,
     pub max_mana: i32,
+    #[serde(skip)]
     pub deck: CardCollection,
+    #[serde(skip)]
     pub hand: CardCollection,
+    #[serde(skip)]
     pub board: CardCollection,
 }
 

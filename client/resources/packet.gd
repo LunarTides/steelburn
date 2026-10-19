@@ -45,3 +45,11 @@ func get_relevant_player() -> Player:
 	
 	var is_starting_player = data.is_starting_player
 	return Game.player if Game.player.is_starting_player == is_starting_player else Game.opponent
+
+
+func get_irrelevant_player() -> Player:
+	if not is_response():
+		return
+	
+	var is_starting_player = data.is_starting_player
+	return Game.opponent if Game.player.is_starting_player == is_starting_player else Game.player

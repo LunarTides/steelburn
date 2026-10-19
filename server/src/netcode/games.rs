@@ -149,8 +149,15 @@ impl Games {
             game_lock.end_turn();
 
             // Repeat packet to both clients.
-            packet.prepare_for_response(game_lock.is_peer_starting_player(peer));
+            let player = game_lock.get_current_player();
+            let player_lock = player.lock().unwrap();
             drop(game_lock);
+
+            packet.prepare_for_response(!player_lock.is_starting_player);
+            packet.data.insert(
+                "opponent".into(),
+                serde_json::to_value(player_lock.clone()).unwrap(),
+            );
             self.send_message_by_peer(peer_map, peer, packet.into());
             return;
         }
@@ -213,6 +220,10 @@ impl Games {
             packet
                 .data
                 .insert("card".into(), serde_json::to_value(clone).unwrap());
+            packet.data.insert(
+                "player".into(),
+                serde_json::to_value(player_lock.clone()).unwrap(),
+            );
 
             self.send_message_by_peer(peer_map, peer, packet.into());
             return;
