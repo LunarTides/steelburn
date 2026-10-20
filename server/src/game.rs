@@ -140,45 +140,6 @@ impl Game {
         current_player.draw_cards(self, 1);
         drop(current_player);
         drop(opposing_player);
-
-        // TODO: Remove. Temporarily call 'onplay' on a Sheep in each player's deck.
-        let player1_lock = self.player1.lock().unwrap();
-        if !player1_lock
-            .info
-            .lock()
-            .unwrap()
-            .username
-            .ends_with("(Lua)")
-        {
-            let card_clone = player1_lock.deck.get_with_id("Sheep").unwrap().clone();
-            let card_lock = card_clone.lock().unwrap();
-            drop(player1_lock);
-
-            if let Some(onplay) = &card_lock.onplay {
-                self.lua_vm.prepare_for_card(self, &card_lock).unwrap();
-                // NOTE: This will panic on lua runtime error.
-                onplay.call::<()>(()).unwrap();
-            }
-            drop(card_lock);
-
-            let player2_lock = self.player2.lock().unwrap();
-            let card_clone = player2_lock.deck.get_with_id("Sheep").unwrap().clone();
-            let card_lock = card_clone.lock().unwrap();
-            drop(player2_lock);
-
-            if let Some(onplay) = &card_lock.onplay {
-                self.lua_vm.prepare_for_card(self, &card_lock).unwrap();
-                onplay.call::<()>(()).unwrap();
-            }
-            drop(card_lock);
-
-            let player1_lock = self.player1.lock().unwrap();
-            log!(
-                Level::Debug,
-                "Player 1's name was changed to: {}",
-                player1_lock.info.lock().unwrap().username
-            );
-        }
     }
 
     pub fn get_current_player(&self) -> SharedPlayer {

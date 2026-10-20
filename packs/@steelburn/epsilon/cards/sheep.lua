@@ -6,7 +6,7 @@ function card.onplay()
     print("[Lua/Sheep/onplay] Play")
     print("[Lua/Sheep/onplay] Is owner starting player: " .. tostring(owner.is_starting_player))
     owner.username = owner.username .. " (Lua)"
-    print("[Lua/Sheep/onplay] Changed owner's name to: " .. owner.username)
+    print("[Lua/Sheep/onplay] " .. tostring(owner.username))
 end
 
 return card

@@ -22,6 +22,7 @@ impl From<Card> for SharedCard {
 pub struct Card {
     #[serde(skip)]
     pub owner: Option<SharedPlayer>,
+    pub is_starting_player: bool,
     pub name: String,
     pub cost: i32,
     pub text: String,
@@ -47,6 +48,7 @@ impl Display for Card {
 impl Clone for Card {
     fn clone(&self) -> Self {
         Self {
+            is_starting_player: self.is_starting_player,
             name: self.name.clone(),
             cost: self.cost,
             text: self.text.clone(),

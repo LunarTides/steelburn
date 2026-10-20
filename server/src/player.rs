@@ -44,6 +44,7 @@ pub struct Player {
     pub board: CardCollection,
 }
 
+// TODO: Use mlua macros instead.
 impl LuaUserData for Player {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("is_starting_player", |_, this| Ok(this.is_starting_player));
@@ -55,8 +56,24 @@ impl LuaUserData for Player {
             this.info.lock().unwrap().username = val;
             Ok(())
         });
+
+        fields.add_field_method_get("mana", |_, this| Ok(this.mana));
+        fields.add_field_method_set("mana", |_, this, val| {
+            // TODO: This doesn't work. It doesn't set the actual property of the struct, only the object on the lua side.
+            this.mana = val;
+            Ok(())
+        });
     }
 }
+
+// impl FromLua for Player {
+//     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+//         match value {
+//             LuaValue::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
+//             _ => unreachable!(),
+//         }
+//     }
+// }
 
 impl Player {
     pub fn new(
@@ -176,7 +193,7 @@ impl Player {
         self.board.erase_with_hash(card_lock.hash);
     }
 
-    pub fn play_card(&mut self, hash: Ulid) -> Result<(), PlayCardError> {
+    pub fn play_card(&mut self, game_lock: &Game, hash: Ulid) -> Result<SharedCard, PlayCardError> {
         let card = self
             .hand
             .get_with_hash(hash)
@@ -196,8 +213,19 @@ impl Player {
         self.reduce_mana(card.lock().unwrap().cost);
         self.remove_card_from_location(&card);
 
-        self.board.push(card);
-        Ok(())
+        self.board.push(card.clone());
+
+        // TODO: Is unwrap safe here?
+        let card_lock = card.lock().unwrap();
+        if let Some(onplay) = &card_lock.onplay {
+            game_lock.lua_vm.prepare_for_card(self).unwrap();
+            // FIXME: This will panic on lua runtime error.
+            onplay.call::<()>(()).unwrap();
+            println!("{}", self.info.lock().unwrap().username);
+        }
+        drop(card_lock);
+
+        Ok(card)
     }
 
     pub fn reduce_mana(&mut self, cost: i32) {

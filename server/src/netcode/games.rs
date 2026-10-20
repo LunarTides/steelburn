@@ -191,7 +191,7 @@ impl Games {
             let game_lock = game.lock().unwrap();
             let player = game_lock.get_player_from_peer(peer).unwrap();
             let mut player_lock = player.lock().unwrap();
-            if let Err(err) = player_lock.play_card(hash_ulid) {
+            if let Err(err) = player_lock.play_card(&game_lock, hash_ulid) {
                 log!(Level::Error, "{err}");
                 return;
             }

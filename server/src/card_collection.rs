@@ -116,6 +116,10 @@ impl CardCollection {
         for card in &self.cards {
             let mut card_lock = card.lock().unwrap();
             card_lock.owner = owner.cloned();
+
+            if let Some(owner) = owner {
+                card_lock.is_starting_player = owner.lock().unwrap().is_starting_player;
+            }
         }
     }
 }

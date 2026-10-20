@@ -4,8 +4,8 @@ use std::sync::MutexGuard;
 use mlua::prelude::*;
 use mlua::{Lua, Result};
 
-use crate::card::Card;
 use crate::game::Game;
+use crate::player::Player;
 
 #[derive(Debug)]
 pub struct LuaVM {
@@ -20,22 +20,10 @@ impl LuaVM {
         Ok(Self { lua })
     }
 
-    pub fn prepare_for_card(&self, game_lock: &Game, card_lock: &Card) -> Result<()> {
+    pub fn prepare_for_card(&self, owner_lock: &Player) -> Result<()> {
         let globals = self.lua.globals();
-
-        let player1_lock = game_lock.player1.lock().unwrap();
-        globals.set("player1", player1_lock.deref().clone())?;
-        drop(player1_lock);
-
-        globals
-            .set(
-                "owner",
-                card_lock
-                    .owner
-                    .clone()
-                    .map(|owner| owner.lock().unwrap().deref().clone()),
-            )
-            .unwrap();
+        // FIXME: Don't clone.
+        globals.set("owner", owner_lock.clone())?;
 
         Ok(())
     }
