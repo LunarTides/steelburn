@@ -1,4 +1,8 @@
-use std::{error::Error, path::PathBuf};
+use std::{
+    error::Error,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use clap::Parser;
 use env_logger::Env;
@@ -12,6 +16,8 @@ mod lua;
 mod netcode;
 mod pack;
 mod player;
+
+type Shared<T> = Arc<Mutex<T>>;
 
 #[derive(Parser)]
 #[command(version, about = "A centralized server for steelburn", long_about = None)]

@@ -1,11 +1,10 @@
-use std::{
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
+use std::net::SocketAddr;
+
+use crate::Shared;
 
 #[derive(Default, Clone, Debug)]
 pub struct Queue {
-    data: Arc<Mutex<Vec<SocketAddr>>>,
+    data: Shared<Vec<SocketAddr>>,
 }
 
 impl Queue {

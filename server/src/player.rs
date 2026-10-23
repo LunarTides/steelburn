@@ -1,9 +1,4 @@
-use std::{
-    error::Error,
-    fmt::Display,
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
+use std::{error::Error, fmt::Display, net::SocketAddr};
 
 use mlua::prelude::*;
 use serde::Serialize;
@@ -11,13 +6,14 @@ use serde_json::Map;
 use ulid::Ulid;
 
 use crate::{
+    Shared,
     card::{Card, SharedCard},
     card_collection::CardCollection,
     game::{Game, SharedGame},
     netcode::net::{Packet, Poisoned, SharedPlayerInfo},
 };
 
-pub type SharedPlayer = Arc<Mutex<Player>>;
+pub type SharedPlayer = Shared<Player>;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Player {

@@ -1,13 +1,11 @@
-use std::{
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
+use std::{net::SocketAddr, sync::Mutex};
 
 use log::{Level, log};
 use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
 
 use crate::{
+    Shared,
     lua::LuaVM,
     netcode::{
         net::{Packet, SharedPlayerInfo},
@@ -16,7 +14,7 @@ use crate::{
     player::{Player, SharedPlayer},
 };
 
-pub type SharedGame = Arc<Mutex<Game>>;
+pub type SharedGame = Shared<Game>;
 
 #[derive(Debug)]
 pub struct Game {

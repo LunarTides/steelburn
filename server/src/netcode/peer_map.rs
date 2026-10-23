@@ -1,14 +1,12 @@
-use std::{
-    collections::HashMap,
-    error::Error,
-    net::SocketAddr,
-    sync::{Arc, Mutex, MutexGuard},
+use std::{collections::HashMap, error::Error, net::SocketAddr, sync::MutexGuard};
+
+use crate::{
+    Shared,
+    netcode::net::{Poisoned, SharedPlayerInfo, Tx},
 };
 
-use crate::netcode::net::{Poisoned, SharedPlayerInfo, Tx};
-
 type Data = HashMap<SocketAddr, (SharedPlayerInfo, Tx)>;
-type SharedData = Arc<Mutex<Data>>;
+type SharedData = Shared<Data>;
 
 #[derive(Default, Clone, Debug)]
 pub struct PeerMap {

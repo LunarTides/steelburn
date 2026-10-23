@@ -1,16 +1,14 @@
 use mlua::FromLua;
 use mlua::prelude::*;
 use serde::Serialize;
-use std::{
-    fmt::Display,
-    sync::{Arc, Mutex},
-};
+use std::{fmt::Display, sync::Mutex};
 use ulid::Ulid;
 
+use crate::Shared;
 use crate::game::SharedGame;
 use crate::player::SharedPlayer;
 
-pub type SharedCard = Arc<Mutex<Card>>;
+pub type SharedCard = Shared<Card>;
 
 impl From<Card> for SharedCard {
     fn from(value: Card) -> Self {

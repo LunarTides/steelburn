@@ -8,6 +8,7 @@ use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
 
 use crate::{
+    Shared,
     game::{Game, SharedGame},
     netcode::{
         anticheat,
@@ -20,7 +21,7 @@ type GameData = (SharedGame, SocketAddr, SocketAddr);
 
 #[derive(Default, Clone, Debug)]
 pub struct Games {
-    data: Arc<Mutex<Vec<GameData>>>,
+    data: Shared<Vec<GameData>>,
 }
 
 impl Games {

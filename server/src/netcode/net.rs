@@ -14,12 +14,13 @@ use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
 
 use crate::{
+    Shared,
     netcode::{games::Games, peer_map::PeerMap, queue::Queue},
     player::Player,
 };
 
 pub type Tx = UnboundedSender<Message>;
-pub type SharedPlayerInfo = Arc<Mutex<PlayerInfo>>;
+pub type SharedPlayerInfo = Shared<PlayerInfo>;
 pub type Poisoned<'a, T> = PoisonError<MutexGuard<'a, T>>;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
