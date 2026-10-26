@@ -3,7 +3,7 @@ card.name = "The Coin"
 card.cost = 0
 
 function card.onplay()
-    print("[Lua/The Coin/onplay] Play")
+    owner.mana = owner.mana + 1
 end
 
 return card

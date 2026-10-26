@@ -190,8 +190,17 @@ impl Games {
             log!(Level::Debug, "Playing '{hash_value}'.");
 
             let game_lock = game.lock().unwrap();
+
+            let is_player_turn = game_lock.current_player_peer == peer;
+            if !is_player_turn {
+                // TODO: Send this to client.
+                log!(Level::Error, "Not this player's turn.");
+                return;
+            }
+
             let player = game_lock.get_player_from_peer(peer).unwrap();
             let mut player_lock = player.lock().unwrap();
+
             let card = match player_lock.play_card(&game_lock, hash_ulid) {
                 Err(err) => {
                     log!(Level::Error, "{err}");

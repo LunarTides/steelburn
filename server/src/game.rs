@@ -24,6 +24,7 @@ pub struct Game {
     pub player2: SharedPlayer,
     pub player2_peer: SocketAddr,
     pub turn: u64,
+    pub current_player_peer: SocketAddr,
     pub lua_vm: LuaVM,
     pub peer_map: PeerMap,
 }
@@ -54,6 +55,7 @@ impl Game {
             player2_peer,
             id,
             turn: 0,
+            current_player_peer: player1_peer,
             lua_vm: LuaVM::start().unwrap(),
             peer_map,
         }
@@ -127,6 +129,11 @@ impl Game {
 
     pub fn end_turn(&mut self) {
         self.turn = self.turn.saturating_add(1);
+        self.current_player_peer = if self.turn.is_multiple_of(2) {
+            self.player1_peer
+        } else {
+            self.player2_peer
+        };
 
         let binding = self.get_current_player();
         let mut current_player = binding.lock().unwrap();
