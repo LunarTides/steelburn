@@ -87,7 +87,7 @@ impl LuaUserData for LuaPlayer {
 
 impl From<SharedPlayer> for LuaPlayer {
     fn from(value: SharedPlayer) -> Self {
-        LuaPlayer { player: value }
+        Self { player: value }
     }
 }
 
@@ -233,8 +233,8 @@ impl Player {
         Ok(card)
     }
 
-    pub fn reduce_mana(&mut self, cost: i32) {
-        self.mana -= cost;
+    pub const fn reduce_mana(&mut self, cost: i32) {
+        self.mana = self.mana.saturating_sub(cost);
     }
 
     pub fn can_afford<'a>(&self, card: &'a SharedCard) -> Result<bool, Poisoned<'a, Card>> {

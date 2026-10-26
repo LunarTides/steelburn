@@ -21,7 +21,7 @@ impl LuaVM {
 
     pub fn prepare_for_card(&self, owner: LuaPlayer) -> Result<()> {
         let globals = self.lua.globals();
-        globals.set("owner", owner.clone())?;
+        globals.set("owner", owner)?;
 
         Ok(())
     }

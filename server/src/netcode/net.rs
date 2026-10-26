@@ -86,7 +86,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     let (info2, sink2) = &peers_lock.get(&peer2).unwrap();
 
     let game = games.add(peer_map, ((peer1, info1.clone()), (peer2, info2.clone())));
-    log!(Level::Debug, "Games: {:?}", games);
+    log!(Level::Debug, "Games: {games:?}");
 
     // Set decks.
     if let Err(err) = Player::setup_deck_from_deckcode(&game, true) {
@@ -207,7 +207,7 @@ fn handle_client_packet(
         peer_info.1.unbounded_send(packet.into()).unwrap();
 
         drop(peer_info);
-        log!(Level::Debug, "Queue: {:?}", queue);
+        log!(Level::Debug, "Queue: {queue:?}");
         try_matchmake(peer_map, queue, games);
         return;
     }
@@ -246,7 +246,7 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
     peer_map.remove(&addr).unwrap();
     queue.remove(addr);
     games.remove_by_peer(addr);
-    log!(Level::Debug, "Games: {:?}", games);
+    log!(Level::Debug, "Games: {games:?}");
 }
 
 async fn handle_connection(
