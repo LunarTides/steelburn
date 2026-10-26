@@ -40,23 +40,37 @@ pub struct Player {
     pub board: CardCollection,
 }
 
+#[derive(Clone)]
+pub struct LuaPlayer {
+    pub player: SharedPlayer,
+}
+
 // TODO: Use mlua macros instead.
-impl LuaUserData for Player {
+impl LuaUserData for LuaPlayer {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
-        fields.add_field_method_get("is_starting_player", |_, this| Ok(this.is_starting_player));
+        fields.add_field_method_get("is_starting_player", |_, this| {
+            Ok(this.player.lock().unwrap().is_starting_player)
+        });
 
         fields.add_field_method_get("username", |_, this| {
-            Ok(this.info.lock().unwrap().username.clone())
+            Ok(this
+                .player
+                .lock()
+                .unwrap()
+                .info
+                .lock()
+                .unwrap()
+                .username
+                .clone())
         });
         fields.add_field_method_set("username", |_, this, val| {
-            this.info.lock().unwrap().username = val;
+            this.player.lock().unwrap().info.lock().unwrap().username = val;
             Ok(())
         });
 
-        fields.add_field_method_get("mana", |_, this| Ok(this.mana));
+        fields.add_field_method_get("mana", |_, this| Ok(this.player.lock().unwrap().mana));
         fields.add_field_method_set("mana", |_, this, val| {
-            // TODO: This doesn't work. It doesn't set the actual property of the struct, only the object on the lua side.
-            this.mana = val;
+            this.player.lock().unwrap().mana = val;
             Ok(())
         });
     }
@@ -70,6 +84,12 @@ impl LuaUserData for Player {
 //         }
 //     }
 // }
+
+impl From<SharedPlayer> for LuaPlayer {
+    fn from(value: SharedPlayer) -> Self {
+        LuaPlayer { player: value }
+    }
+}
 
 impl Player {
     pub fn new(
@@ -210,17 +230,6 @@ impl Player {
         self.remove_card_from_location(&card);
 
         self.board.push(card.clone());
-
-        // TODO: Is unwrap safe here?
-        let card_lock = card.lock().unwrap();
-        if let Some(onplay) = &card_lock.onplay {
-            game_lock.lua_vm.prepare_for_card(self).unwrap();
-            // FIXME: This will panic on lua runtime error.
-            onplay.call::<()>(()).unwrap();
-            println!("{}", self.info.lock().unwrap().username);
-        }
-        drop(card_lock);
-
         Ok(card)
     }
 

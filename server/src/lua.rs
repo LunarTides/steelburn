@@ -1,11 +1,10 @@
-use std::ops::Deref;
 use std::sync::MutexGuard;
 
 use mlua::prelude::*;
 use mlua::{Lua, Result};
 
 use crate::game::Game;
-use crate::player::Player;
+use crate::player::LuaPlayer;
 
 #[derive(Debug)]
 pub struct LuaVM {
@@ -20,10 +19,9 @@ impl LuaVM {
         Ok(Self { lua })
     }
 
-    pub fn prepare_for_card(&self, owner_lock: &Player) -> Result<()> {
+    pub fn prepare_for_card(&self, owner: LuaPlayer) -> Result<()> {
         let globals = self.lua.globals();
-        // FIXME: Don't clone.
-        globals.set("owner", owner_lock.clone())?;
+        globals.set("owner", owner.clone())?;
 
         Ok(())
     }
@@ -31,9 +29,10 @@ impl LuaVM {
     pub fn prepare_for_resource(&self, game_lock: &MutexGuard<Game>) -> Result<()> {
         let globals = self.lua.globals();
 
-        let player1_lock = game_lock.player1.lock().unwrap();
-        globals.set("player1", player1_lock.deref().clone())?;
-        drop(player1_lock);
+        // TODO: Implement
+        // let player1_lock = game_lock.player1.lock().unwrap();
+        // globals.set("player1", player1_lock)?;
+        // drop(player1_lock);
 
         Ok(())
     }

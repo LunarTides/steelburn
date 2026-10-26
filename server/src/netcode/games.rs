@@ -192,10 +192,13 @@ impl Games {
             let game_lock = game.lock().unwrap();
             let player = game_lock.get_player_from_peer(peer).unwrap();
             let mut player_lock = player.lock().unwrap();
-            if let Err(err) = player_lock.play_card(&game_lock, hash_ulid) {
-                log!(Level::Error, "{err}");
-                return;
-            }
+            let card = match player_lock.play_card(&game_lock, hash_ulid) {
+                Err(err) => {
+                    log!(Level::Error, "{err}");
+                    return;
+                }
+                Ok(card) => card,
+            };
 
             log!(
                 Level::Debug,
@@ -204,17 +207,25 @@ impl Games {
                 player_lock.board,
                 player_lock.board.len()
             );
+            drop(player_lock);
 
-            let card = player_lock
-                .board
-                .get_with_hash(hash_ulid)
-                .unwrap()
-                .lock()
-                .unwrap();
-            let mut clone = card.clone();
-            clone.hash = card.hash;
-            drop(card);
+            let card_lock = card.lock().unwrap();
 
+            // Run the `onplay` function on the lua side.
+            if let Some(onplay) = &card_lock.onplay {
+                game_lock
+                    .lua_vm
+                    .prepare_for_card(player.clone().into())
+                    .unwrap();
+                // FIXME: This will panic on lua runtime error.
+                onplay.call::<()>(()).unwrap();
+            }
+
+            let mut clone = card_lock.clone();
+            clone.hash = card_lock.hash;
+            drop(card_lock);
+
+            let player_lock = player.lock().unwrap();
             // Repeat packet to both clients.
             // TODO: Add a function to automate this kind of thing.
             packet.prepare_for_response(player_lock.is_starting_player);
