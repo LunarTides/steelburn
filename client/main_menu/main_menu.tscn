@@ -17,8 +17,8 @@ metadata/_custom_type_script = "uid://c4gbbya1ls2ex"
 
 [sub_resource type="Resource" id="Resource_oa53l"]
 script = ExtResource("2_d3a7t")
-name = "localhost"
-address = "localhost:56040"
+name = "127.0.0.1"
+address = "127.0.0.1:56040"
 max_players_connected = 50
 metadata/_custom_type_script = "uid://c4gbbya1ls2ex"
 
