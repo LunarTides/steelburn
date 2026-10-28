@@ -73,11 +73,7 @@ func draw_cards(packet: ResponsePacket):
 	var cards = packet.response_data.cards
 	
 	for card_json in cards:
-		var card := Card.new()
-		packet.set_properties(card, card_json)
-		
-		Game.player.hand.append(card)
-		Game.player.hand_changed.emit()
+		Card.create_from_dict(card_json)
 
 
 func opponent_draw_cards(packet: ResponsePacket):
@@ -99,12 +95,4 @@ func play_card(packet: ResponsePacket):
 	if not player.is_opponent:
 		return
 	
-	var card := Card.new()
-	packet.set_properties(card, packet.response_data.card)
-	card.add_to_location()
-	
-	#player.hand.pop_back()
-	#player.hand_changed.emit()
-	#
-	#player.board.append(card)
-	#player.board_changed.emit()
+	Card.create_from_dict(packet.response_data.card)

@@ -36,6 +36,15 @@ var owner: Player:
 		return Game.starting_player if is_starting_player else Game.starting_player.get_opponent()
 
 
+static func create_from_dict(dict: Dictionary) -> Card:
+	var card := Card.new()
+	for key in dict.keys():
+		var value = dict[key]
+		card.set(key, value)
+	card.add_to_location()
+	return card
+
+
 static func find_from_hash(hash: String) -> Card:
 	for player: Player in [Game.player, Game.opponent]:
 		# NOTE: For some reaon, `find` doesn't work here.
