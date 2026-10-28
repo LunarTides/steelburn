@@ -43,13 +43,13 @@ func get_opponent() -> Player:
 
 func remove_from_location(card: Card):
 	# NOTE: For some reaon, `find` doesn't work here.
-	var hand_index = hand.filter(func(c: Card): return c.hash == card.hash)
+	var hand_index = hand.filter(func(c: Card): return c and c.hash == card.hash)
 	if hand_index.size() > 0:
 		hand.erase(hand_index[0])
 		hand_changed.emit()
 		return
 	
-	var board_index = board.filter(func(c: Card): return c.hash == card.hash)
+	var board_index = board.filter(func(c: Card): return c and c.hash == card.hash)
 	if board_index.size() > 0:
 		board.erase(board_index[0])
 		board_changed.emit()

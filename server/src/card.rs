@@ -1,6 +1,8 @@
 use mlua::FromLua;
 use mlua::prelude::*;
 use serde::Serialize;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::{fmt::Display, sync::Mutex};
 use ulid::Ulid;
 
@@ -38,6 +40,8 @@ pub struct Card {
     #[serde(skip)]
     pub onplay: Option<LuaFunction>,
     pub hash: Ulid,
+    #[serde(skip)]
+    pub changes: HashMap<String, Value>,
 }
 
 impl Display for Card {
@@ -65,6 +69,7 @@ impl Clone for Card {
             location: self.location.clone(),
             onplay: self.onplay.clone(),
             hash: Ulid::generate(),
+            changes: HashMap::new(),
         }
     }
 }
@@ -73,19 +78,19 @@ impl LuaUserData for Card {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("name", |_, this| Ok(this.name.clone()));
         fields.add_field_method_set("name", |_, this, val| {
-            this.name = val;
+            this.set_name(val);
             Ok(())
         });
 
         fields.add_field_method_get("cost", |_, this| Ok(this.cost));
         fields.add_field_method_set("cost", |_, this, val| {
-            this.cost = val;
+            this.set_cost(val);
             Ok(())
         });
 
         fields.add_field_method_get("text", |_, this| Ok(this.text.clone()));
         fields.add_field_method_set("text", |_, this, val| {
-            this.text = val;
+            this.set_text(val);
             Ok(())
         });
 
@@ -120,6 +125,25 @@ impl FromLua for Card {
 }
 
 impl Card {
+    // TODO: Replace with enchantments?
+    pub fn set_name(&mut self, name: String) {
+        self.name = name.clone();
+        self.changes.insert("name".into(), name.into());
+    }
+    pub fn set_cost(&mut self, cost: i32) {
+        self.cost = cost;
+        self.changes.insert("cost".into(), cost.into());
+    }
+    pub fn set_text(&mut self, text: String) {
+        self.text = text.clone();
+        self.changes.insert("text".into(), text.into());
+    }
+    pub fn set_location(&mut self, location: Location) {
+        self.location = location.clone();
+        self.changes
+            .insert("location".into(), serde_json::to_value(location).unwrap());
+    }
+
     #[allow(
         clippy::significant_drop_tightening,
         reason = "Can't drop `game_lock` while `lua_vm` is in scope."

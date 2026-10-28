@@ -104,12 +104,14 @@ impl Game {
 
     pub fn start_game(&self, response: &mut Option<&mut ResponsePacket>) {
         let mut player1 = self.player1.lock().unwrap();
-        let mut player2 = self.player2.lock().unwrap();
+        player1.draw_cards(self, 3, response);
+        // NOTE: Draw cards requires the opposing player to be free.
+        drop(player1);
 
-        for player in [&mut player1, &mut player2] {
-            let draw_amount = if player.is_starting_player { 3 } else { 4 };
-            player.draw_cards(self, draw_amount, response);
-        }
+        let mut player2 = self.player2.lock().unwrap();
+        player2.draw_cards(self, 4, response);
+
+        let mut player1 = self.player1.lock().unwrap();
 
         player1.mana = 1;
 
@@ -137,14 +139,15 @@ impl Game {
 
         let binding = self.get_current_player();
         let mut current_player = binding.lock().unwrap();
-        let binding = self.get_opposing_player();
-        let mut opposing_player = binding.lock().unwrap();
 
         // TODO: Cap to empty mana.
         current_player.add_mana(1);
         current_player.draw_cards(self, 1, response);
+
+        // let binding = self.get_opposing_player();
+        // let mut opposing_player = binding.lock().unwrap();
         drop(current_player);
-        drop(opposing_player);
+        // drop(opposing_player);
     }
 
     pub fn get_current_player(&self) -> SharedPlayer {

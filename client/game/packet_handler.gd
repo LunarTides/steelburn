@@ -16,18 +16,33 @@ func _on_packet_recieved(packet: ResponsePacket):
 
 
 func handle_changes(packet: ResponsePacket):
-	var player1 = packet.changes.get("Player 1")
-	if player1:
-		for k in player1.keys():
-			var v = player1[k]
-			Game.starting_player[k] = v
-	
-	var player2 = packet.changes.get("Player 2")
-	var relevant_player = Game.starting_player.get_opponent()
-	if player2:
-		for k in player2.keys():
-			var v = player2[k]
-			relevant_player[k] = v
+	for key in packet.changes.keys():
+		var val = packet.changes[key]
+		
+		if key == "Player 1":
+			for k in val.keys():
+				var v = val[k]
+				Game.starting_player[k] = v
+			continue
+		
+		if key == "Player 2":
+			var relevant_player = Game.starting_player.get_opponent()
+			for k in val.keys():
+				var v = val[k]
+				relevant_player[k] = v
+			continue
+		
+		# Cards
+		var card = Card.find_from_hash(key)
+		if not card:
+			continue
+		
+		for k in val.keys():
+			var v = val[k]
+			card[k] = v
+			
+			if k == "location":
+				card.add_to_location()
 
 
 func player_info(packet: ResponsePacket):
@@ -80,15 +95,16 @@ func end_turn(packet: ResponsePacket):
 
 
 func play_card(packet: ResponsePacket):
+	var player = packet.get_relevant_player()
+	if not player.is_opponent:
+		return
+	
 	var card := Card.new()
 	packet.set_properties(card, packet.response_data.card)
+	card.add_to_location()
 	
-	var player = packet.get_relevant_player()
-	if player.is_opponent:
-		player.hand.pop_back()
-		player.hand_changed.emit()
-	else:
-		player.remove_from_location(card)
-	
-	player.board.append(card)
-	player.board_changed.emit()
+	#player.hand.pop_back()
+	#player.hand_changed.emit()
+	#
+	#player.board.append(card)
+	#player.board_changed.emit()

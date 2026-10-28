@@ -135,6 +135,7 @@ impl Player {
         deck.set_owner(Some(&player));
         for card in &deck {
             let mut card_lock = card.lock().unwrap();
+            // NOTE: We don't use `set_location` here since we don't want it to be stored in the card's changes.
             card_lock.location = Location::Deck;
         }
 
@@ -150,7 +151,7 @@ impl Player {
     }
 
     pub fn set_username(&mut self, username: String) {
-        self.info.lock().unwrap().username = username.clone();
+        self.info.lock().unwrap().username.clone_from(&username);
         self.changes.insert("username".into(), username.into());
     }
 
@@ -186,6 +187,8 @@ impl Player {
                 }
                 Some(card) => {
                     self.hand.push(card.clone());
+                    // NOTE: We don't use `set_location` here since we don't want it to be stored in the card's changes.
+                    // NOTE: ^ This is because the client doesn't know anything about this card yet, so any changes to it are irrelevant.
                     card.lock().unwrap().location = Location::Hand;
                     // TODO: Add changes to the card.
                     cards.push(card);
@@ -216,6 +219,8 @@ impl Player {
                 serde_json::to_value(packet_data_cards).unwrap(),
             );
             friendly_response.is_starting_player = self.is_starting_player;
+            friendly_response.use_player_changes(self);
+            friendly_response.use_player_changes_shared(&self.get_opponent(game));
             game.send_packet_to(self.peer, friendly_response);
 
             // Opponent
@@ -225,7 +230,8 @@ impl Player {
                 .response_data
                 .insert("amount".into(), cards.len().into());
             opponent_response.is_starting_player = self.is_starting_player;
-
+            opponent_response.use_player_changes(self);
+            opponent_response.use_player_changes_shared(&self.get_opponent(game));
             game.send_packet_to(self.get_opponent_peer(game), opponent_response);
         }
 
@@ -260,7 +266,7 @@ impl Player {
         self.remove_card_from_location(&card);
 
         self.board.push(card.clone());
-        card.lock().unwrap().location = Location::Board;
+        card.lock().unwrap().set_location(Location::Board);
         Ok(card)
     }
 

@@ -114,8 +114,8 @@ impl Games {
     ) -> Option<()> {
         let game_lock = game.lock().unwrap();
 
-        packet.use_player_changes(&game_lock.player1);
-        packet.use_player_changes(&game_lock.player2);
+        packet.use_player_changes_shared(&game_lock.player1);
+        packet.use_player_changes_shared(&game_lock.player2);
 
         self.send_message_by_peer(peer_map, peer, packet.into())
     }
@@ -259,7 +259,7 @@ impl Games {
             response.is_starting_player = player_lock.is_starting_player;
             drop(player_lock);
 
-            // TODO: Automatically include this in the `changes` field.
+            // TODO: Don't send the entire card to the peer who sent the packet.
             response
                 .response_data
                 .insert("card".into(), serde_json::to_value(clone).unwrap());

@@ -16,6 +16,7 @@ use ulid::Ulid;
 
 use crate::{
     Shared,
+    card::SharedCard,
     netcode::{games::Games, peer_map::PeerMap, queue::Queue},
     player::{Player, SharedPlayer},
 };
@@ -88,24 +89,59 @@ impl ResponsePacket {
         }
     }
 
-    pub fn use_player_changes(&mut self, player: &SharedPlayer) {
-        let mut player_lock = player.lock().unwrap();
-        if player_lock.changes.is_empty() {
+    pub fn use_player_changes(&mut self, player: &mut Player) {
+        if player.changes.is_empty() {
             return;
         }
 
-        let name = player_lock.get_indexed_name();
+        let name = player.get_indexed_name();
 
         if !self.changes.contains_key(&name) {
             self.changes.insert(name.clone(), HashMap::new());
         }
 
         let changes = self.changes.get_mut(&name).unwrap();
-        for (k, v) in player_lock.changes.clone() {
+        for (k, v) in player.changes.clone() {
             changes.insert(k, v);
         }
 
-        player_lock.changes.clear();
+        player.changes.clear();
+
+        // Use card changes from player.
+        // FIXME: Cards whose location is changed to Oblivion won't be used here.
+        for card in &player.deck {
+            self.use_card_changes_shared(&card);
+        }
+        for card in &player.hand {
+            self.use_card_changes_shared(&card);
+        }
+        for card in &player.board {
+            self.use_card_changes_shared(&card);
+        }
+    }
+
+    pub fn use_player_changes_shared(&mut self, player: &SharedPlayer) {
+        let mut player_lock = player.lock().unwrap();
+        self.use_player_changes(&mut player_lock)
+    }
+
+    pub fn use_card_changes_shared(&mut self, card: &SharedCard) {
+        let mut card_lock = card.lock().unwrap();
+        if card_lock.changes.is_empty() {
+            return;
+        }
+
+        let hash = card_lock.hash.to_string();
+        if !self.changes.contains_key(&hash) {
+            self.changes.insert(hash.clone(), HashMap::new());
+        }
+
+        let changes = self.changes.get_mut(&hash).unwrap();
+        for (k, v) in card_lock.changes.clone() {
+            changes.insert(k, v);
+        }
+
+        card_lock.changes.clear();
     }
 }
 impl From<ResponsePacket> for Message {
