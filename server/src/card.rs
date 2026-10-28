@@ -99,7 +99,7 @@ impl FromLua for Card {
 impl Card {
     // TODO: Replace with enchantments?
     pub fn set_name(&mut self, name: String) {
-        self.name = name.clone();
+        self.name.clone_from(&name);
         self.changes.insert("name".into(), name.into());
     }
     pub fn set_cost(&mut self, cost: i32) {
@@ -107,7 +107,7 @@ impl Card {
         self.changes.insert("cost".into(), cost.into());
     }
     pub fn set_text(&mut self, text: String) {
-        self.text = text.clone();
+        self.text.clone_from(&text);
         self.changes.insert("text".into(), text.into());
     }
     pub fn set_location(&mut self, location: Location) {

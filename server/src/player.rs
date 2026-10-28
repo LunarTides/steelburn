@@ -1,6 +1,5 @@
 use std::{collections::HashMap, error::Error, fmt::Display, net::SocketAddr};
 
-use mlua::prelude::*;
 use serde::Serialize;
 use serde_json::Value;
 use ulid::Ulid;
@@ -10,7 +9,10 @@ use crate::{
     card::{Card, Location, SharedCard},
     card_collection::CardCollection,
     game::{Game, SharedGame},
-    netcode::net::{Poisoned, ResponsePacket, SharedPlayerInfo},
+    netcode::{
+        net::{Poisoned, SharedPlayerInfo},
+        packet::ResponsePacket,
+    },
 };
 
 pub type SharedPlayer = Shared<Player>;

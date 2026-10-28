@@ -7,10 +7,7 @@ use ulid::Ulid;
 use crate::{
     Shared,
     lua::LuaVM,
-    netcode::{
-        net::{Packet, ResponsePacket, SharedPlayerInfo},
-        peer_map::PeerMap,
-    },
+    netcode::{net::SharedPlayerInfo, packet::ResponsePacket, peer_map::PeerMap},
     player::{Player, SharedPlayer},
 };
 
@@ -75,7 +72,7 @@ impl Game {
         self.player1_peer == peer
     }
 
-    pub fn send_packet(&self, packet: Packet) {
+    pub fn send_packet(&self, packet: ResponsePacket) {
         let peers = [self.player1_peer, self.player2_peer];
 
         // TODO: Is unwrap safe here?
@@ -96,9 +93,7 @@ impl Game {
         let map_peers = self.peer_map.get().unwrap();
         let sink = &map_peers.iter().find(|(addr, _)| *addr == &peer)?.1.1;
 
-        let message: Message = packet.into();
-        sink.unbounded_send(message).unwrap();
-
+        packet.send_to(sink).unwrap();
         Some(())
     }
 

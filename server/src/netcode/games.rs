@@ -10,11 +10,7 @@ use ulid::Ulid;
 use crate::{
     Shared,
     game::{Game, SharedGame},
-    netcode::{
-        anticheat,
-        net::{Packet, ResponsePacket, SharedPlayerInfo},
-        peer_map::PeerMap,
-    },
+    netcode::{anticheat, net::SharedPlayerInfo, packet::ResponsePacket, peer_map::PeerMap},
 };
 
 type GameData = (SharedGame, SocketAddr, SocketAddr);
@@ -274,49 +270,6 @@ impl Games {
             return;
         }
 
-        // TODO: Replace with something other than echo packet :)
-        let json = r#"
-            {
-                "type": "echo",
-                "data": {
-                    "from_peer": "replace me",
-                    "from_player": "replace me",
-                    "packet": "replace me",
-                    "game_id": "replace me"
-                }
-            }
-        "#;
-        let mut response_packet: Packet = serde_json::from_str(json).unwrap();
-        response_packet.data.insert(
-            "from_peer".into(),
-            serde_json::Value::String(peer.to_string()),
-        );
-        let game_lock = game.lock().unwrap();
-        response_packet.data.insert(
-            "from_player".into(),
-            serde_json::Value::String(
-                game_lock
-                    .get_player_from_peer(peer)
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .info
-                    .lock()
-                    .unwrap()
-                    .username
-                    .clone(),
-            ),
-        );
-        response_packet.data.insert(
-            "packet".into(),
-            serde_json::Value::String(response.packet_type.clone()),
-        );
-        response_packet.data.insert(
-            "game_id".into(),
-            serde_json::Value::String(game_lock.id.to_string()),
-        );
-        drop(game_lock);
-
-        self.send_message_by_peer(peer_map, peer, response_packet.into());
+        // TODO: Handle unknown packets.
     }
 }
