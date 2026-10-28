@@ -23,6 +23,14 @@ impl IntoIterator for CardCollection {
         self.cards.into_iter()
     }
 }
+impl IntoIterator for &CardCollection {
+    type Item = SharedCard;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cards.clone().into_iter()
+    }
+}
 
 impl FromIterator<SharedCard> for CardCollection {
     fn from_iter<I: IntoIterator<Item = SharedCard>>(iter: I) -> Self {

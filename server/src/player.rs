@@ -7,7 +7,7 @@ use ulid::Ulid;
 
 use crate::{
     Shared,
-    card::{Card, SharedCard},
+    card::{Card, Location, SharedCard},
     card_collection::CardCollection,
     game::{Game, SharedGame},
     netcode::net::{Packet, Poisoned, SharedPlayerInfo},
@@ -128,8 +128,14 @@ impl Player {
         let info_clone = player_lock.info.clone();
         let info_lock = info_clone.lock().unwrap();
         drop(player_lock);
+
         let deck = CardCollection::from_deckcode(game, info_lock.deckcode.as_str())?;
         deck.set_owner(Some(&player));
+        for card in &deck {
+            let mut card_lock = card.lock().unwrap();
+            card_lock.location = Location::Deck;
+        }
+
         drop(info_lock);
         let mut player_lock = player.lock().unwrap();
         player_lock.deck = deck;
@@ -164,6 +170,7 @@ impl Player {
                 }
                 Some(card) => {
                     self.hand.push(card.clone());
+                    card.lock().unwrap().location = Location::Hand;
                     cards.push(card);
                 }
             }
@@ -230,6 +237,7 @@ impl Player {
         self.remove_card_from_location(&card);
 
         self.board.push(card.clone());
+        card.lock().unwrap().location = Location::Board;
         Ok(card)
     }
 

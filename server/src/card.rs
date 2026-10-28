@@ -8,6 +8,15 @@ use crate::Shared;
 use crate::game::SharedGame;
 use crate::player::SharedPlayer;
 
+#[derive(Debug, Default, Serialize, Clone)]
+pub enum Location {
+    #[default]
+    Oblivion,
+    Deck,
+    Hand,
+    Board,
+}
+
 pub type SharedCard = Shared<Card>;
 
 impl From<Card> for SharedCard {
@@ -25,6 +34,7 @@ pub struct Card {
     pub cost: i32,
     pub text: String,
     pub id: String,
+    pub location: Location,
     #[serde(skip)]
     pub onplay: Option<LuaFunction>,
     pub hash: Ulid,
@@ -52,6 +62,7 @@ impl Clone for Card {
             text: self.text.clone(),
             id: self.id.clone(),
             owner: self.owner.clone(),
+            location: self.location.clone(),
             onplay: self.onplay.clone(),
             hash: Ulid::generate(),
         }

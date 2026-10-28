@@ -13,6 +13,10 @@ extends Resource
 	set(value):
 		text = value
 		emit_changed()
+@export var location: String:
+	set(value):
+		location = value
+		emit_changed()
 @export var id: String:
 	set(value):
 		id = value
