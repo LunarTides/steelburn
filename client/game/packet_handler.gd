@@ -7,24 +7,40 @@ func _ready() -> void:
 	Socket.packed_recieved.connect(_on_packet_recieved)
 
 
-func _on_packet_recieved(packet: Packet):
+func _on_packet_recieved(packet: ResponsePacket):
+	handle_changes(packet)
+	
 	var f = get(packet.type)
 	if f:
 		f.call(packet)
 
 
-func player_info(packet: Packet):
+func handle_changes(packet: ResponsePacket):
+	var player1 = packet.changes.get("Player 1")
+	if player1:
+		for k in player1.keys():
+			var v = player1[k]
+			Game.starting_player[k] = v
+	
+	var player2 = packet.changes.get("Player 2")
+	var relevant_player = Game.starting_player.get_opponent()
+	if player2:
+		for k in player2.keys():
+			var v = player2[k]
+			relevant_player[k] = v
+
+
+func player_info(packet: ResponsePacket):
 	Game.player.set_properties(packet)
 
 
-func opponent_player_info(packet: Packet):
+func opponent_player_info(packet: ResponsePacket):
 	Game.opponent.set_properties(packet)
 
 
-func begin_game(packet: Packet):
-	var is_starting_player = packet.data.is_starting_player
-	Game.player.is_starting_player = is_starting_player
-	Game.opponent.is_starting_player = not is_starting_player
+func begin_game(packet: ResponsePacket):
+	Game.player.is_starting_player = packet.is_starting_player
+	Game.opponent.is_starting_player = not packet.is_starting_player
 	
 	# TODO: Maybe don't assume this on client.
 	Game.starting_player.mana = 1
@@ -33,13 +49,13 @@ func begin_game(packet: Packet):
 	Game.start()
 
 
-func end_game(packet: Packet):
-	var reason = packet.data.reason
+func end_game(packet: ResponsePacket):
+	var reason = packet.response_data.reason
 	Game.end(reason)
 
 
-func draw_cards(packet: Packet):
-	var cards = packet.data.cards
+func draw_cards(packet: ResponsePacket):
+	var cards = packet.response_data.cards
 	
 	for card_json in cards:
 		var card := Card.new()
@@ -49,8 +65,8 @@ func draw_cards(packet: Packet):
 		Game.player.hand_changed.emit()
 
 
-func opponent_draw_cards(packet: Packet):
-	var amount = packet.data.amount
+func opponent_draw_cards(packet: ResponsePacket):
+	var amount = packet.response_data.amount
 	var null_array = []
 	null_array.resize(amount)
 	null_array.fill(null)
@@ -58,22 +74,16 @@ func opponent_draw_cards(packet: Packet):
 	Game.opponent.hand_changed.emit()
 
 
-func end_turn(packet: Packet):
+func end_turn(packet: ResponsePacket):
 	Game.our_turn = not Game.our_turn
-	
-	var player = packet.get_irrelevant_player()
-	packet.set_properties(player, packet.data.opponent)
-	
 	Game.turn_ended.emit()
 
 
-func play_card(packet: Packet):
+func play_card(packet: ResponsePacket):
 	var card := Card.new()
-	packet.set_properties(card, packet.data.card)
+	packet.set_properties(card, packet.response_data.card)
 	
 	var player = packet.get_relevant_player()
-	packet.set_properties(player, packet.data.player)
-	
 	if player.is_opponent:
 		player.hand.pop_back()
 		player.hand_changed.emit()

@@ -12,7 +12,7 @@ use crate::{
     game::{Game, SharedGame},
     netcode::{
         anticheat,
-        net::{Packet, SharedPlayerInfo},
+        net::{Packet, ResponsePacket, SharedPlayerInfo},
         peer_map::PeerMap,
     },
 };
@@ -105,6 +105,21 @@ impl Games {
         Some(())
     }
 
+    pub fn send_packet_by_peer(
+        &self,
+        game: &SharedGame,
+        peer_map: &PeerMap,
+        peer: SocketAddr,
+        mut packet: ResponsePacket,
+    ) -> Option<()> {
+        let game_lock = game.lock().unwrap();
+
+        packet.use_player_changes(&game_lock.player1);
+        packet.use_player_changes(&game_lock.player2);
+
+        self.send_message_by_peer(peer_map, peer, packet.into())
+    }
+
     #[allow(
         clippy::significant_drop_tightening,
         reason = "We can't drop `game_peers` here."
@@ -122,17 +137,22 @@ impl Games {
 
     // TODO: Return a result.
     // TODO: Split into multiple functions.
-    pub fn handle_client_packet(&self, peer_map: &PeerMap, peer: SocketAddr, mut packet: Packet) {
+    pub fn handle_client_packet(
+        &self,
+        peer_map: &PeerMap,
+        peer: SocketAddr,
+        mut response: ResponsePacket,
+    ) {
         let Some(game) = self.get_game_from_peer(peer) else {
             log!(Level::Error, "Could not get game from peer.");
             return;
         };
 
-        if !anticheat::check(&game, peer_map, peer, &packet) {
+        if !anticheat::check(&game, peer_map, peer, &response) {
             return;
         }
 
-        if packet.packet_type == "end_turn" {
+        if response.packet_type == "end_turn" {
             let mut game_lock = game.lock().unwrap();
             log!(
                 Level::Debug,
@@ -147,23 +167,21 @@ impl Games {
                     .unwrap()
                     .username
             );
-            game_lock.end_turn();
-
             // Repeat packet to both clients.
             let player = game_lock.get_current_player();
             let player_lock = player.lock().unwrap();
+
+            response.is_starting_player = !player_lock.is_starting_player;
+            drop(player_lock);
+
+            game_lock.end_turn(&mut Some(&mut response));
             drop(game_lock);
 
-            packet.prepare_for_response(!player_lock.is_starting_player);
-            packet.data.insert(
-                "opponent".into(),
-                serde_json::to_value(player_lock.clone()).unwrap(),
-            );
-            self.send_message_by_peer(peer_map, peer, packet.into());
+            self.send_packet_by_peer(&game, peer_map, peer, response);
             return;
         }
-        if packet.packet_type == "play_card" {
-            let Some(hash_value) = packet.data.get("hash") else {
+        if response.packet_type == "play_card" {
+            let Some(hash_value) = response.request_data.get("hash") else {
                 log!(
                     Level::Error,
                     "'play_card' packet doesn't have a 'hash' data field."
@@ -201,7 +219,7 @@ impl Games {
             let player = game_lock.get_player_from_peer(peer).unwrap();
             let mut player_lock = player.lock().unwrap();
 
-            let card = match player_lock.play_card(&game_lock, hash_ulid) {
+            let card = match player_lock.play_card(hash_ulid) {
                 Err(err) => {
                     log!(Level::Error, "{err}");
                     return;
@@ -229,6 +247,7 @@ impl Games {
                 // FIXME: This will panic on lua runtime error.
                 onplay.call::<()>(()).unwrap();
             }
+            drop(game_lock);
 
             let mut clone = card_lock.clone();
             clone.hash = card_lock.hash;
@@ -237,16 +256,15 @@ impl Games {
             let player_lock = player.lock().unwrap();
             // Repeat packet to both clients.
             // TODO: Add a function to automate this kind of thing.
-            packet.prepare_for_response(player_lock.is_starting_player);
-            packet
-                .data
-                .insert("card".into(), serde_json::to_value(clone).unwrap());
-            packet.data.insert(
-                "player".into(),
-                serde_json::to_value(player_lock.clone()).unwrap(),
-            );
+            response.is_starting_player = player_lock.is_starting_player;
+            drop(player_lock);
 
-            self.send_message_by_peer(peer_map, peer, packet.into());
+            // TODO: Automatically include this in the `changes` field.
+            response
+                .response_data
+                .insert("card".into(), serde_json::to_value(clone).unwrap());
+
+            self.send_packet_by_peer(&game, peer_map, peer, response);
             return;
         }
 
@@ -285,7 +303,7 @@ impl Games {
         );
         response_packet.data.insert(
             "packet".into(),
-            serde_json::Value::String(packet.packet_type.clone()),
+            serde_json::Value::String(response.packet_type.clone()),
         );
         response_packet.data.insert(
             "game_id".into(),

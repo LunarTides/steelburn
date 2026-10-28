@@ -29,12 +29,16 @@ var is_opponent: bool:
 		return is_starting_player == Game.opponent.is_starting_player
 
 
-func set_properties(packet: Packet):
+func set_properties(packet: ResponsePacket):
 	if packet.type != "player_info" and packet.type != "opponent_player_info":
 		push_error("Invalid packet for populating player info. (%s)" % packet.type)
 		return
 	
 	packet.set_properties(self)
+
+
+func get_opponent() -> Player:
+	return Game.player if Game.player.is_starting_player != is_starting_player else Game.opponent
 
 
 func remove_from_location(card: Card):

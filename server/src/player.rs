@@ -1,8 +1,8 @@
-use std::{error::Error, fmt::Display, net::SocketAddr};
+use std::{collections::HashMap, error::Error, fmt::Display, net::SocketAddr};
 
 use mlua::prelude::*;
 use serde::Serialize;
-use serde_json::Map;
+use serde_json::Value;
 use ulid::Ulid;
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
     card::{Card, Location, SharedCard},
     card_collection::CardCollection,
     game::{Game, SharedGame},
-    netcode::net::{Packet, Poisoned, SharedPlayerInfo},
+    netcode::net::{Poisoned, ResponsePacket, SharedPlayerInfo},
 };
 
 pub type SharedPlayer = Shared<Player>;
@@ -38,6 +38,7 @@ pub struct Player {
     pub hand: CardCollection,
     #[serde(skip)]
     pub board: CardCollection,
+    pub changes: HashMap<String, Value>,
 }
 
 #[derive(Clone)]
@@ -64,13 +65,13 @@ impl LuaUserData for LuaPlayer {
                 .clone())
         });
         fields.add_field_method_set("username", |_, this, val| {
-            this.player.lock().unwrap().info.lock().unwrap().username = val;
+            this.player.lock().unwrap().set_username(val);
             Ok(())
         });
 
         fields.add_field_method_get("mana", |_, this| Ok(this.player.lock().unwrap().mana));
         fields.add_field_method_set("mana", |_, this, val| {
-            this.player.lock().unwrap().mana = val;
+            this.player.lock().unwrap().set_mana(val);
             Ok(())
         });
     }
@@ -109,6 +110,7 @@ impl Player {
             deck: CardCollection::default(),
             hand: CardCollection::default(),
             board: CardCollection::default(),
+            changes: HashMap::new(),
         }
     }
 
@@ -143,6 +145,15 @@ impl Player {
         Ok(())
     }
 
+    pub fn get_indexed_name(&self) -> String {
+        format!("Player {}", if self.is_starting_player { 1 } else { 2 })
+    }
+
+    pub fn set_username(&mut self, username: String) {
+        self.info.lock().unwrap().username = username.clone();
+        self.changes.insert("username".into(), username.into());
+    }
+
     pub fn get_opponent(&self, game: &Game) -> SharedPlayer {
         if self.is_starting_player {
             game.player2.clone()
@@ -159,7 +170,12 @@ impl Player {
         }
     }
 
-    pub fn draw_cards(&mut self, game: &Game, amount: u32) -> CardCollection {
+    pub fn draw_cards(
+        &mut self,
+        game: &Game,
+        amount: u32,
+        response: &mut Option<&mut ResponsePacket>,
+    ) -> CardCollection {
         let mut cards = CardCollection::default();
 
         for _ in 0..amount {
@@ -171,6 +187,7 @@ impl Player {
                 Some(card) => {
                     self.hand.push(card.clone());
                     card.lock().unwrap().location = Location::Hand;
+                    // TODO: Add changes to the card.
                     cards.push(card);
                 }
             }
@@ -191,20 +208,26 @@ impl Player {
             })
             .collect();
 
-        let mut packet_data = Map::new();
-        packet_data.insert(
-            "cards".into(),
-            serde_json::to_value(packet_data_cards).unwrap(),
-        );
-        game.send_packet_to(self.peer, Packet::new("draw_cards".into(), packet_data));
+        if let Some(response) = response {
+            let mut friendly_response = response.clone();
+            friendly_response.packet_type = "draw_cards".into();
+            friendly_response.response_data.insert(
+                "cards".into(),
+                serde_json::to_value(packet_data_cards).unwrap(),
+            );
+            friendly_response.is_starting_player = self.is_starting_player;
+            game.send_packet_to(self.peer, friendly_response);
 
-        // Opponent
-        let mut packet_data = Map::new();
-        packet_data.insert("amount".into(), cards.len().into());
-        game.send_packet_to(
-            self.get_opponent_peer(game),
-            Packet::new("opponent_draw_cards".into(), packet_data),
-        );
+            // Opponent
+            let mut opponent_response = response.clone();
+            opponent_response.packet_type = "opponent_draw_cards".into();
+            opponent_response
+                .response_data
+                .insert("amount".into(), cards.len().into());
+            opponent_response.is_starting_player = self.is_starting_player;
+
+            game.send_packet_to(self.get_opponent_peer(game), opponent_response);
+        }
 
         cards
     }
@@ -216,7 +239,7 @@ impl Player {
         self.board.erase_with_hash(card_lock.hash);
     }
 
-    pub fn play_card(&mut self, game_lock: &Game, hash: Ulid) -> Result<SharedCard, PlayCardError> {
+    pub fn play_card(&mut self, hash: Ulid) -> Result<SharedCard, PlayCardError> {
         let card = self
             .hand
             .get_with_hash(hash)
@@ -241,8 +264,17 @@ impl Player {
         Ok(card)
     }
 
-    pub const fn reduce_mana(&mut self, cost: i32) {
-        self.mana = self.mana.saturating_sub(cost);
+    pub fn set_mana(&mut self, mana: i32) {
+        self.mana = mana;
+        self.changes.insert("mana".into(), self.mana.into());
+    }
+    pub fn add_mana(&mut self, mana: i32) {
+        self.mana = self.mana.saturating_add(mana);
+        self.changes.insert("mana".into(), self.mana.into());
+    }
+    pub fn reduce_mana(&mut self, mana: i32) {
+        self.mana = self.mana.saturating_sub(mana);
+        self.changes.insert("mana".into(), self.mana.into());
     }
 
     pub fn can_afford<'a>(&self, card: &'a SharedCard) -> Result<bool, Poisoned<'a, Card>> {

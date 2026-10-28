@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     error::Error,
     net::SocketAddr,
     sync::{Arc, Mutex, MutexGuard, PoisonError},
@@ -8,7 +9,7 @@ use futures_channel::mpsc::{UnboundedSender, unbounded};
 use futures_util::{StreamExt, TryStreamExt, future, pin_mut};
 use log::{Level, log};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
@@ -16,7 +17,7 @@ use ulid::Ulid;
 use crate::{
     Shared,
     netcode::{games::Games, peer_map::PeerMap, queue::Queue},
-    player::Player,
+    player::{Player, SharedPlayer},
 };
 
 pub type Tx = UnboundedSender<Message>;
@@ -35,24 +36,18 @@ pub struct PlayerInfo {
 pub struct Packet {
     #[serde(rename = "type")]
     pub packet_type: String,
-    pub data: Map<String, Value>,
+    pub id: String,
+    pub data: HashMap<String, Value>,
 }
 impl Packet {
-    pub const fn new(packet_type: String, data: Map<String, Value>) -> Self {
-        Self { packet_type, data }
-    }
-
-    pub fn prepare_for_response(&mut self, is_starting_player: bool) {
-        self.data.clear();
-        self.data
-            .insert("is_starting_player".into(), is_starting_player.into());
-    }
-
-    pub fn prepare_for_response_no_starting_player(&mut self) {
-        self.data.clear();
+    pub const fn new(packet_type: String, id: String, data: HashMap<String, Value>) -> Self {
+        Self {
+            packet_type,
+            id,
+            data,
+        }
     }
 }
-
 impl From<Packet> for Message {
     fn from(val: Packet) -> Self {
         Self::Text(serde_json::to_string(&val).unwrap().into())
@@ -64,8 +59,71 @@ impl From<&Packet> for Message {
     }
 }
 
-pub fn create_packet_message(json: &str) -> Message {
-    serde_json::from_str::<Packet>(json).unwrap().into()
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ResponsePacket {
+    #[serde(rename = "type")]
+    pub packet_type: String,
+    pub id: Option<String>,
+    pub is_starting_player: bool,
+    pub request_data: HashMap<String, Value>,
+    pub response_data: HashMap<String, Value>,
+    pub error: Option<String>,
+    pub changes: HashMap<String, HashMap<String, Value>>,
+}
+impl ResponsePacket {
+    pub fn new(
+        packet_type: String,
+        id: Option<String>,
+        is_starting_player: bool,
+        response_data: HashMap<String, Value>,
+    ) -> Self {
+        Self {
+            packet_type,
+            id,
+            is_starting_player,
+            request_data: HashMap::new(),
+            response_data,
+            error: None,
+            changes: HashMap::new(),
+        }
+    }
+
+    pub fn use_player_changes(&mut self, player: &SharedPlayer) {
+        let mut player_lock = player.lock().unwrap();
+        if player_lock.changes.is_empty() {
+            return;
+        }
+
+        let name = player_lock.get_indexed_name();
+
+        if !self.changes.contains_key(&name) {
+            self.changes.insert(name.clone(), HashMap::new());
+        }
+
+        let changes = self.changes.get_mut(&name).unwrap();
+        for (k, v) in player_lock.changes.clone() {
+            changes.insert(k, v);
+        }
+
+        player_lock.changes.clear();
+    }
+}
+impl From<ResponsePacket> for Message {
+    fn from(val: ResponsePacket) -> Self {
+        Self::Text(serde_json::to_string(&val).unwrap().into())
+    }
+}
+impl From<&ResponsePacket> for Message {
+    fn from(val: &ResponsePacket) -> Self {
+        Self::Text(serde_json::to_string(&val).unwrap().into())
+    }
+}
+impl From<Packet> for ResponsePacket {
+    fn from(value: Packet) -> Self {
+        let mut response = Self::new(value.packet_type, Some(value.id), true, HashMap::default());
+        response.request_data = value.data;
+        response
+    }
 }
 
 #[allow(
@@ -122,46 +180,37 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
         };
 
         // Send player info.
-        let json = r#"
-                {
-                    "type": "opponent_player_info",
-                    "data": {}
-                }
-            "#;
+        let mut response =
+            ResponsePacket::new("opponent_player_info".into(), None, false, HashMap::new());
 
-        let mut packet: Packet = serde_json::from_str(json).unwrap();
-        // Put the PlayerInfo into the packet.
-        packet.data.clone_from(
-            serde_json::to_value(info.lock().unwrap().clone())
-                .unwrap()
-                .as_object()
-                .unwrap(),
-        );
-        // FIXME: This will probably poison the peer map.
-        sink.unbounded_send(packet.into()).unwrap();
+        // TODO: Is unwrap safe here?
+        let map = serde_json::to_value(info.lock().unwrap().clone()).unwrap();
+        let map = map.as_object().unwrap().clone();
+        for (k, v) in map {
+            response.response_data.insert(k, v);
+        }
+
+        // FIXME: Unwrap here will probably poison the peer map.
+        sink.unbounded_send(response.into()).unwrap();
 
         // Send `begin_game` packet.
         log!(Level::Debug, "Sending 'begin_game' packet");
-        let json = r#"
-            {
-                "type": "begin_game",
-                "data": {
-                    "is_starting_player": false
-                }
-            }
-        "#;
-
-        let mut packet: Packet = serde_json::from_str(json).unwrap();
         let game_lock = game.lock().unwrap();
-        packet.prepare_for_response(game_lock.is_peer_starting_player(peer));
+        let response = ResponsePacket::new(
+            "begin_game".into(),
+            None,
+            game_lock.is_peer_starting_player(peer),
+            HashMap::new(),
+        );
         // FIXME: This will probably poison the peer map.
-        sink.unbounded_send(packet.into()).unwrap();
+        sink.unbounded_send(response.into()).unwrap();
     }
 
     drop(peers_lock);
     log!(Level::Debug, "Starting game");
+    let mut response = ResponsePacket::new("begin_game".into(), None, false, HashMap::new());
     let game_lock = game.lock().unwrap();
-    game_lock.start_game();
+    game_lock.start_game(&mut Some(&mut response));
 }
 
 fn handle_client_packet(
@@ -169,21 +218,23 @@ fn handle_client_packet(
     queue: &Queue,
     games: &Games,
     peer: SocketAddr,
-    mut packet: Packet,
+    packet: Packet,
 ) {
     log!(Level::Debug, "Handling packet {packet:?} from {peer}");
 
     // TODO: Is unwrap safe here?
     let peer_info = peer_map.get_entry(&peer).unwrap();
 
-    if packet.packet_type == "player_info" {
+    let mut response: ResponsePacket = packet.into();
+
+    if response.packet_type == "player_info" {
         let mut info_lock = peer_info.0.lock().unwrap();
 
-        if let Some(username) = packet.data.get("username") {
+        if let Some(username) = response.request_data.get("username") {
             info_lock.username = username.as_str().unwrap().into();
             log!(Level::Debug, "Renamed {peer} to: {}", info_lock.username);
         }
-        if let Some(deckcode) = packet.data.get("deckcode") {
+        if let Some(deckcode) = response.request_data.get("deckcode") {
             info_lock.deckcode = deckcode.as_str().unwrap().into();
             log!(
                 Level::Debug,
@@ -194,17 +245,17 @@ fn handle_client_packet(
 
         // Respond.
         // NOTE: Include the automatically generated username if the packet didn't include one.
-        packet
-            .data
+        response
+            .response_data
             .insert("username".into(), info_lock.username.clone().into());
-        peer_info.1.unbounded_send(packet.into()).unwrap();
+        peer_info.1.unbounded_send(response.into()).unwrap();
         return;
-    } else if packet.packet_type == "enter_queue" {
+    } else if response.packet_type == "enter_queue" {
         // TODO: Block player from entering queue if they haven't sent their player info.
         queue.add(peer);
 
         // Respond.
-        peer_info.1.unbounded_send(packet.into()).unwrap();
+        peer_info.1.unbounded_send(response.into()).unwrap();
 
         drop(peer_info);
         log!(Level::Debug, "Queue: {queue:?}");
@@ -214,21 +265,18 @@ fn handle_client_packet(
 
     drop(peer_info);
     if games.peer_in_game(peer) {
-        games.handle_client_packet(peer_map, peer, packet);
+        games.handle_client_packet(peer_map, peer, response);
     }
 }
 
 fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: SocketAddr) {
-    let json = r#"
-        {
-            "type": "end_game",
-            "data": {
-                "reason": "opponent_disconnected"
-            }
-        }
-    "#;
-    let message = create_packet_message(json);
-    games.send_message_by_peer(peer_map, addr, message);
+    let response = ResponsePacket::new(
+        "end_game".into(),
+        None,
+        false,
+        HashMap::from([("reason".into(), "opponent_disconnected".into())]),
+    );
+    games.send_message_by_peer(peer_map, addr, response.into());
 
     if let Some(opposing_peer) = games.get_opposing_peer(addr) {
         log!(

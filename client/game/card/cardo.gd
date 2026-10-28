@@ -178,9 +178,9 @@ func _on_area_exited(area: Area3D) -> void:
 		hovering_over_board = false
 
 
-func _on_packet_recieved(packet: Packet) -> void:
+func _on_packet_recieved(packet: ResponsePacket) -> void:
 	if packet.type == "play_card":
-		if packet.data.card.hash != card.hash:
+		if packet.response_data.card.hash != card.hash:
 			return
 		
 		queue_free()

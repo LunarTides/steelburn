@@ -8,7 +8,7 @@ use crate::{
     Shared,
     lua::LuaVM,
     netcode::{
-        net::{Packet, SharedPlayerInfo},
+        net::{Packet, ResponsePacket, SharedPlayerInfo},
         peer_map::PeerMap,
     },
     player::{Player, SharedPlayer},
@@ -91,7 +91,7 @@ impl Game {
         }
     }
 
-    pub fn send_packet_to(&self, peer: SocketAddr, packet: Packet) -> Option<()> {
+    pub fn send_packet_to(&self, peer: SocketAddr, packet: ResponsePacket) -> Option<()> {
         // TODO: Is unwrap safe here?
         let map_peers = self.peer_map.get().unwrap();
         let sink = &map_peers.iter().find(|(addr, _)| *addr == &peer)?.1.1;
@@ -102,13 +102,13 @@ impl Game {
         Some(())
     }
 
-    pub fn start_game(&self) {
+    pub fn start_game(&self, response: &mut Option<&mut ResponsePacket>) {
         let mut player1 = self.player1.lock().unwrap();
         let mut player2 = self.player2.lock().unwrap();
 
         for player in [&mut player1, &mut player2] {
             let draw_amount = if player.is_starting_player { 3 } else { 4 };
-            player.draw_cards(self, draw_amount);
+            player.draw_cards(self, draw_amount, response);
         }
 
         player1.mana = 1;
@@ -127,7 +127,7 @@ impl Game {
         );
     }
 
-    pub fn end_turn(&mut self) {
+    pub fn end_turn(&mut self, response: &mut Option<&mut ResponsePacket>) {
         self.turn = self.turn.saturating_add(1);
         self.current_player_peer = if self.turn.is_multiple_of(2) {
             self.player1_peer
@@ -141,8 +141,8 @@ impl Game {
         let mut opposing_player = binding.lock().unwrap();
 
         // TODO: Cap to empty mana.
-        current_player.mana = current_player.mana.saturating_add(1);
-        current_player.draw_cards(self, 1);
+        current_player.add_mana(1);
+        current_player.draw_cards(self, 1, response);
         drop(current_player);
         drop(opposing_player);
     }

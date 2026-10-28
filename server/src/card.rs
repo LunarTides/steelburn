@@ -103,7 +103,7 @@ impl FromLua for Card {
 
         let name = c.get::<String>("name").unwrap();
         let cost = c.get::<i32>("cost").unwrap_or(0);
-        let text = c.get::<String>("text").unwrap_or_else(|_| "".to_string());
+        let text = c.get::<String>("text").unwrap_or_else(|_| String::new());
         let id = c.get::<String>("id").unwrap_or_else(|_| name.clone());
         let onplay = c.get::<LuaFunction>("onplay").ok();
 

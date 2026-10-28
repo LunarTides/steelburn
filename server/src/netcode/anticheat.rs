@@ -2,14 +2,14 @@ use std::net::SocketAddr;
 
 use crate::{
     game::SharedGame,
-    netcode::{net::Packet, peer_map::PeerMap},
+    netcode::{net::ResponsePacket, peer_map::PeerMap},
 };
 
 pub const fn check(
     game: &SharedGame,
     peer_map: &PeerMap,
     peer: SocketAddr,
-    packet: &Packet,
+    packet: &ResponsePacket,
 ) -> bool {
     // TODO: Implement.
     true

@@ -5,15 +5,29 @@ extends Resource
 	set(value):
 		type = value
 		emit_changed()
+@export var id: String:
+	set(value):
+		id = value
+		emit_changed()
 @export var data: Dictionary:
 	set(value):
 		data = value
 		emit_changed()
 
 
+static func get_random_id() -> String:
+	var result: String = ""
+	
+	for i in 64:
+		result += "abcdefghijklmnopqrstuvxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_".split("")[randf_range(0, 63)]
+	
+	return result
+
+
 static func from(dict: Dictionary) -> Packet:
 	var packet = Packet.new()
 	packet.type = dict.get("type")
+	packet.id = dict.get("id", Packet.get_random_id())
 	packet.data = dict.get("data")
 	return packet
 
@@ -21,6 +35,7 @@ static func from(dict: Dictionary) -> Packet:
 func to_dict() -> Dictionary:
 	var dict = {}
 	dict.set("type", type)
+	dict.set("id", id)
 	dict.set("data", data)
 	return dict 
 
@@ -33,23 +48,3 @@ func set_properties(object: Object, copy_from = data):
 	for key in copy_from.keys():
 		var value = copy_from[key]
 		object.set(key, value)
-
-
-func is_response() -> bool:
-	return data.has("is_starting_player")
-
-
-func get_relevant_player() -> Player:
-	if not is_response():
-		return
-	
-	var is_starting_player = data.is_starting_player
-	return Game.player if Game.player.is_starting_player == is_starting_player else Game.opponent
-
-
-func get_irrelevant_player() -> Player:
-	if not is_response():
-		return
-	
-	var is_starting_player = data.is_starting_player
-	return Game.opponent if Game.player.is_starting_player == is_starting_player else Game.player

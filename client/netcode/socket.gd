@@ -1,9 +1,10 @@
 extends Node
 
 signal connected(server: Server)
+# TODO: Handle diconnects during game.
 signal disconnected(server: Server, code: int, reason: String, clean: bool)
 signal packed_sent(packet: Packet)
-signal packed_recieved(packet: Packet)
+signal packed_recieved(packet: ResponsePacket)
 
 var socket = WebSocketPeer.new()
 var server: Server
@@ -26,8 +27,9 @@ func _process(delta):
 		
 		while socket.get_available_packet_count():
 			var json = socket.get_packet().get_string_from_utf8()
+			print()
 			print(json)
-			var packet = Packet.from(JSON.parse_string(json))
+			var packet = ResponsePacket.from(JSON.parse_string(json))
 			packed_recieved.emit(packet)
 	elif state == WebSocketPeer.STATE_CLOSING:
 		# Keep polling to achieve proper close.
@@ -58,6 +60,9 @@ func close():
 	is_connecting_to_server = false
 
 
-func send_packet(packet: Packet):
+func send_packet(packet: Packet, randomize_packet_id: bool = true):
+	if randomize_packet_id:
+		packet.id = Packet.get_random_id()
+	
 	socket.send_text(packet.to_json())
 	packed_sent.emit(packet)
