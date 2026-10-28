@@ -74,34 +74,6 @@ impl Clone for Card {
     }
 }
 
-impl LuaUserData for Card {
-    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
-        fields.add_field_method_get("name", |_, this| Ok(this.name.clone()));
-        fields.add_field_method_set("name", |_, this, val| {
-            this.set_name(val);
-            Ok(())
-        });
-
-        fields.add_field_method_get("cost", |_, this| Ok(this.cost));
-        fields.add_field_method_set("cost", |_, this, val| {
-            this.set_cost(val);
-            Ok(())
-        });
-
-        fields.add_field_method_get("text", |_, this| Ok(this.text.clone()));
-        fields.add_field_method_set("text", |_, this, val| {
-            this.set_text(val);
-            Ok(())
-        });
-
-        fields.add_field_method_get("onplay", |_, this| Ok(this.onplay.clone()));
-        fields.add_field_method_set("onplay", |_, this, val| {
-            this.onplay = Some(val);
-            Ok(())
-        });
-    }
-}
-
 impl FromLua for Card {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         let c = value.as_table().unwrap();

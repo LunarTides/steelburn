@@ -126,6 +126,7 @@ impl ResponsePacket {
     }
 
     pub fn use_card_changes_shared(&mut self, card: &SharedCard) {
+        // TODO: Don't send sensitive changes to the opposing peer.
         let mut card_lock = card.lock().unwrap();
         if card_lock.changes.is_empty() {
             return;

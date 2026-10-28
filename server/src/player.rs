@@ -41,57 +41,6 @@ pub struct Player {
     pub changes: HashMap<String, Value>,
 }
 
-#[derive(Clone)]
-pub struct LuaPlayer {
-    pub player: SharedPlayer,
-}
-
-// TODO: Use mlua macros instead.
-impl LuaUserData for LuaPlayer {
-    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
-        fields.add_field_method_get("is_starting_player", |_, this| {
-            Ok(this.player.lock().unwrap().is_starting_player)
-        });
-
-        fields.add_field_method_get("username", |_, this| {
-            Ok(this
-                .player
-                .lock()
-                .unwrap()
-                .info
-                .lock()
-                .unwrap()
-                .username
-                .clone())
-        });
-        fields.add_field_method_set("username", |_, this, val| {
-            this.player.lock().unwrap().set_username(val);
-            Ok(())
-        });
-
-        fields.add_field_method_get("mana", |_, this| Ok(this.player.lock().unwrap().mana));
-        fields.add_field_method_set("mana", |_, this, val| {
-            this.player.lock().unwrap().set_mana(val);
-            Ok(())
-        });
-    }
-}
-
-// impl FromLua for Player {
-//     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
-//         match value {
-//             LuaValue::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
-//             _ => unreachable!(),
-//         }
-//     }
-// }
-
-impl From<SharedPlayer> for LuaPlayer {
-    fn from(value: SharedPlayer) -> Self {
-        Self { player: value }
-    }
-}
-
 impl Player {
     pub fn new(
         game_id: Ulid,

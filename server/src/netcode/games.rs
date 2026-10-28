@@ -242,13 +242,19 @@ impl Games {
             if let Some(onplay) = &card_lock.onplay {
                 game_lock
                     .lua_vm
-                    .prepare_for_card(player.clone().into())
+                    .prepare_for_card(card.clone().into(), player.clone().into())
                     .unwrap();
+
+                let onplay = onplay.clone();
+                drop(card_lock);
                 // FIXME: This will panic on lua runtime error.
                 onplay.call::<()>(()).unwrap();
+            } else {
+                drop(card_lock);
             }
             drop(game_lock);
 
+            let card_lock = card.lock().unwrap();
             let mut clone = card_lock.clone();
             clone.hash = card_lock.hash;
             drop(card_lock);
