@@ -72,6 +72,11 @@ func end_game(packet: ResponsePacket):
 func draw_cards(packet: ResponsePacket):
 	var cards = packet.response_data.cards
 	
+	# TODO: Ew. The cards should probably always be an array.
+	if typeof(cards) == TYPE_DICTIONARY:
+		Card.create_from_dict(cards)
+		return
+	
 	for card_json in cards:
 		Card.create_from_dict(card_json)
 

@@ -77,16 +77,15 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
         "Deck 2: {:?}",
         game_lock.player2.lock().unwrap().deck
     );
-    drop(game_lock);
 
     log!(Level::Debug, "Sending opponent info");
     for i in 0..2 {
-        let (peer, info, sink) = if i == 0 {
+        let (peer, info, sink, player) = if i == 0 {
             // Send player 2 info to sink 1.
-            (peer1, info2, sink1)
+            (peer1, info2, sink1, game_lock.get_player_from_peer(peer1))
         } else {
             // Send player 1 info to sink 2.
-            (peer2, info1, sink2)
+            (peer2, info1, sink2, game_lock.get_player_from_peer(peer2))
         };
 
         // Send player info.
@@ -101,11 +100,10 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
         }
 
         // FIXME: Unwrap here will probably poison the peer map.
-        response.send_to(sink).unwrap();
+        response.send_to(sink, player.as_ref()).unwrap();
 
         // Send `begin_game` packet.
         log!(Level::Debug, "Sending 'begin_game' packet");
-        let game_lock = game.lock().unwrap();
         let response = ResponsePacket::new(
             "begin_game".into(),
             None,
@@ -113,13 +111,12 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
             HashMap::new(),
         );
         // FIXME: This will probably poison the peer map.
-        response.send_to(sink).unwrap();
+        response.send_to(sink, player.as_ref()).unwrap();
     }
 
     drop(peers_lock);
     log!(Level::Debug, "Starting game");
     let mut response = ResponsePacket::new("begin_game".into(), None, false, HashMap::new());
-    let game_lock = game.lock().unwrap();
     game_lock.start_game(&mut Some(&mut response));
 }
 
@@ -158,14 +155,14 @@ fn handle_client_packet(
         response
             .response_data
             .insert("username".into(), info_lock.username.clone().into());
-        response.send_to(&peer_info.1).unwrap();
+        response.send_to(&peer_info.1, None).unwrap();
         return;
     } else if response.packet_type == "enter_queue" {
         // TODO: Block player from entering queue if they haven't sent their player info.
         queue.add(peer);
 
         // Respond.
-        response.send_to(&peer_info.1).unwrap();
+        response.send_to(&peer_info.1, None).unwrap();
 
         drop(peer_info);
         log!(Level::Debug, "Queue: {queue:?}");

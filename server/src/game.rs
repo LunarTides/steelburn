@@ -1,11 +1,11 @@
 use std::{net::SocketAddr, sync::Mutex};
 
 use log::{Level, log};
-use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
 
 use crate::{
     Shared,
+    card_collection::CardCollection,
     lua::LuaVM,
     netcode::{net::SharedPlayerInfo, packet::ResponsePacket, peer_map::PeerMap},
     player::{Player, SharedPlayer},
@@ -72,41 +72,53 @@ impl Game {
         self.player1_peer == peer
     }
 
-    pub fn send_packet(&self, packet: ResponsePacket) {
+    pub fn send_packet(&self, mut packet: ResponsePacket) {
+        packet.use_player_changes_shared(&self.player1);
+        packet.use_player_changes_shared(&self.player2);
+
         let peers = [self.player1_peer, self.player2_peer];
 
         // TODO: Is unwrap safe here?
         let map_peers = self.peer_map.get().unwrap();
-        let sinks = map_peers
+        let mappings = map_peers
             .iter()
             .filter(|(addr, _)| peers.contains(addr))
-            .map(|(_, (_, sink))| sink);
+            .map(|(addr, (_, sink))| (sink, self.get_player_from_peer(*addr)));
 
-        let message: Message = packet.into();
-        for sink in sinks {
-            sink.unbounded_send(message.clone()).unwrap();
+        for (sink, player) in mappings {
+            // TODO: Is unwrap safe here?
+            packet.send_to(sink, player.as_ref()).unwrap();
         }
     }
 
-    pub fn send_packet_to(&self, peer: SocketAddr, packet: ResponsePacket) -> Option<()> {
+    pub fn send_packet_to(
+        &self,
+        peer: SocketAddr,
+        packet: &ResponsePacket,
+        player: Option<&SharedPlayer>,
+    ) -> Option<()> {
         // TODO: Is unwrap safe here?
         let map_peers = self.peer_map.get().unwrap();
         let sink = &map_peers.iter().find(|(addr, _)| *addr == &peer)?.1.1;
 
-        packet.send_to(sink).unwrap();
+        packet.send_to(sink, player).unwrap();
         Some(())
     }
 
     pub fn start_game(&self, response: &mut Option<&mut ResponsePacket>) {
         let mut player1 = self.player1.lock().unwrap();
-        player1.draw_cards(self, 3, response);
+        let cards = player1.draw_cards(3);
         // NOTE: Draw cards requires the opposing player to be free.
         drop(player1);
+        self.send_draw_cards_packet(response, &self.player1, &cards);
 
         let mut player2 = self.player2.lock().unwrap();
-        player2.draw_cards(self, 4, response);
+        let cards = player2.draw_cards(4);
+        drop(player2);
+        self.send_draw_cards_packet(response, &self.player2, &cards);
 
         let mut player1 = self.player1.lock().unwrap();
+        let mut player2 = self.player2.lock().unwrap();
 
         player1.mana = 1;
 
@@ -132,17 +144,60 @@ impl Game {
             self.player2_peer
         };
 
-        let binding = self.get_current_player();
-        let mut current_player = binding.lock().unwrap();
+        let current_player = self.get_current_player();
+        let mut current_player_lock = current_player.lock().unwrap();
 
         // TODO: Cap to empty mana.
-        current_player.add_mana(1);
-        current_player.draw_cards(self, 1, response);
+        current_player_lock.add_mana(1);
+        let cards = current_player_lock.draw_cards(1);
+        drop(current_player_lock);
+        self.send_draw_cards_packet(response, &current_player, &cards);
 
         // let binding = self.get_opposing_player();
         // let mut opposing_player = binding.lock().unwrap();
-        drop(current_player);
+        // drop(current_player);
         // drop(opposing_player);
+    }
+
+    pub fn send_draw_cards_packet(
+        &self,
+        response: &mut Option<&mut ResponsePacket>,
+        player: &SharedPlayer,
+        cards: &CardCollection,
+    ) {
+        if response.is_none() {
+            return;
+        }
+
+        // Send cards to clients.
+        let response = response.as_mut().unwrap();
+
+        let mut friendly_response = response.clone();
+        friendly_response.packet_type = "draw_cards".into();
+        friendly_response.add_cards("cards", cards.clone());
+        let mut player_lock = player.lock().unwrap();
+        friendly_response.is_starting_player = player_lock.is_starting_player;
+        friendly_response.use_player_changes(&mut player_lock);
+        friendly_response.use_player_changes_shared(&player_lock.get_opponent(self));
+        let player_peer = player_lock.peer;
+        drop(player_lock);
+        self.send_packet_to(player_peer, &friendly_response, Some(&player));
+
+        // Opponent
+        let mut opponent_response = response.clone();
+        opponent_response.packet_type = "opponent_draw_cards".into();
+        opponent_response
+            .response_data
+            .insert("amount".into(), cards.len().into());
+        let mut player_lock = player.lock().unwrap();
+        opponent_response.is_starting_player = player_lock.is_starting_player;
+        opponent_response.use_player_changes(&mut player_lock);
+        opponent_response.use_player_changes_shared(&player_lock.get_opponent(self));
+        self.send_packet_to(
+            player_lock.get_opponent_peer(self),
+            &opponent_response,
+            Some(&player_lock.get_opponent(self)),
+        );
     }
 
     pub fn get_current_player(&self) -> SharedPlayer {

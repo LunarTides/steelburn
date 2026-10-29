@@ -101,21 +101,6 @@ impl Games {
         Some(())
     }
 
-    pub fn send_packet_by_peer(
-        &self,
-        game: &SharedGame,
-        peer_map: &PeerMap,
-        peer: SocketAddr,
-        mut packet: ResponsePacket,
-    ) -> Option<()> {
-        let game_lock = game.lock().unwrap();
-
-        packet.use_player_changes_shared(&game_lock.player1);
-        packet.use_player_changes_shared(&game_lock.player2);
-
-        self.send_message_by_peer(peer_map, peer, packet.into())
-    }
-
     #[allow(
         clippy::significant_drop_tightening,
         reason = "We can't drop `game_peers` here."
@@ -171,9 +156,7 @@ impl Games {
             drop(player_lock);
 
             game_lock.end_turn(&mut Some(&mut response));
-            drop(game_lock);
-
-            self.send_packet_by_peer(&game, peer_map, peer, response);
+            game_lock.send_packet(response);
             return;
         }
         if response.packet_type == "play_card" {
@@ -248,25 +231,14 @@ impl Games {
             } else {
                 drop(card_lock);
             }
-            drop(game_lock);
-
-            let card_lock = card.lock().unwrap();
-            let mut clone = card_lock.clone();
-            clone.hash = card_lock.hash;
-            drop(card_lock);
 
             let player_lock = player.lock().unwrap();
             // Repeat packet to both clients.
-            // TODO: Add a function to automate this kind of thing.
             response.is_starting_player = player_lock.is_starting_player;
             drop(player_lock);
 
-            // TODO: Don't send the entire card to the peer who sent the packet.
-            response
-                .response_data
-                .insert("card".into(), serde_json::to_value(clone).unwrap());
-
-            self.send_packet_by_peer(&game, peer_map, peer, response);
+            response.add_card("card", card);
+            game_lock.send_packet(response);
             return;
         }
 

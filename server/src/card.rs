@@ -41,6 +41,10 @@ pub struct Card {
     pub onplay: Option<LuaFunction>,
     pub hash: Ulid,
     #[serde(skip)]
+    pub has_sent_to_player1: bool,
+    #[serde(skip)]
+    pub has_sent_to_player2: bool,
+    #[serde(skip)]
     pub changes: HashMap<String, Value>,
 }
 
@@ -69,6 +73,8 @@ impl Clone for Card {
             location: self.location.clone(),
             onplay: self.onplay.clone(),
             hash: Ulid::generate(),
+            has_sent_to_player1: false,
+            has_sent_to_player2: false,
             changes: HashMap::new(),
         }
     }

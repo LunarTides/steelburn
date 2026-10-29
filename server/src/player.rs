@@ -9,10 +9,7 @@ use crate::{
     card::{Card, Location, SharedCard},
     card_collection::CardCollection,
     game::{Game, SharedGame},
-    netcode::{
-        net::{Poisoned, SharedPlayerInfo},
-        packet::ResponsePacket,
-    },
+    netcode::net::{Poisoned, SharedPlayerInfo},
 };
 
 pub type SharedPlayer = Shared<Player>;
@@ -122,12 +119,8 @@ impl Player {
         }
     }
 
-    pub fn draw_cards(
-        &mut self,
-        game: &Game,
-        amount: u32,
-        response: &mut Option<&mut ResponsePacket>,
-    ) -> CardCollection {
+    /// Call `Game.send_draw_cards_packet` after calling this function.
+    pub fn draw_cards(&mut self, amount: u32) -> CardCollection {
         let mut cards = CardCollection::default();
 
         for _ in 0..amount {
@@ -141,49 +134,9 @@ impl Player {
                     // NOTE: We don't use `set_location` here since we don't want it to be stored in the card's changes.
                     // NOTE: ^ This is because the client doesn't know anything about this card yet, so any changes to it are irrelevant.
                     card.lock().unwrap().location = Location::Hand;
-                    // TODO: Add changes to the card.
                     cards.push(card);
                 }
             }
-        }
-
-        // Send cards to client.
-        let packet_data_cards: Vec<Card> = cards
-            .clone()
-            .into_iter()
-            .map(|card| {
-                let card_lock = card.lock().unwrap();
-                let hash = card_lock.hash;
-
-                let mut clone = card_lock.clone();
-                drop(card_lock);
-                clone.hash = hash;
-                clone
-            })
-            .collect();
-
-        if let Some(response) = response {
-            let mut friendly_response = response.clone();
-            friendly_response.packet_type = "draw_cards".into();
-            friendly_response.response_data.insert(
-                "cards".into(),
-                serde_json::to_value(packet_data_cards).unwrap(),
-            );
-            friendly_response.is_starting_player = self.is_starting_player;
-            friendly_response.use_player_changes(self);
-            friendly_response.use_player_changes_shared(&self.get_opponent(game));
-            game.send_packet_to(self.peer, friendly_response);
-
-            // Opponent
-            let mut opponent_response = response.clone();
-            opponent_response.packet_type = "opponent_draw_cards".into();
-            opponent_response
-                .response_data
-                .insert("amount".into(), cards.len().into());
-            opponent_response.is_starting_player = self.is_starting_player;
-            opponent_response.use_player_changes(self);
-            opponent_response.use_player_changes_shared(&self.get_opponent(game));
-            game.send_packet_to(self.get_opponent_peer(game), opponent_response);
         }
 
         cards
