@@ -104,7 +104,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
 
         // Send `begin_game` packet.
         log!(Level::Debug, "Sending 'begin_game' packet");
-        let response = ResponsePacket::new(
+        let mut response = ResponsePacket::new(
             "begin_game".into(),
             None,
             game_lock.is_peer_starting_player(peer),

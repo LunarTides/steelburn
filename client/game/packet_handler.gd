@@ -65,12 +65,12 @@ func begin_game(packet: ResponsePacket):
 
 
 func end_game(packet: ResponsePacket):
-	var reason = packet.response_data.reason
+	var reason = packet.data.reason
 	Game.end(reason)
 
 
 func draw_cards(packet: ResponsePacket):
-	var cards = packet.response_data.cards
+	var cards = packet.data.cards
 	
 	# TODO: Ew. The cards should probably always be an array.
 	if typeof(cards) == TYPE_DICTIONARY:
@@ -82,7 +82,7 @@ func draw_cards(packet: ResponsePacket):
 
 
 func opponent_draw_cards(packet: ResponsePacket):
-	var amount = packet.response_data.amount
+	var amount = packet.data.amount
 	var null_array = []
 	null_array.resize(amount)
 	null_array.fill(null)
@@ -100,4 +100,4 @@ func play_card(packet: ResponsePacket):
 	if not player.is_opponent:
 		return
 	
-	Card.create_from_dict(packet.response_data.card)
+	Card.create_from_dict(packet.data.card)

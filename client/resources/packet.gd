@@ -18,7 +18,7 @@ extends Resource
 static func get_random_id() -> String:
 	var result: String = ""
 	
-	for i in 64:
+	for i in 32:
 		result += "abcdefghijklmnopqrstuvxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_".split("")[randf_range(0, 63)]
 	
 	return result

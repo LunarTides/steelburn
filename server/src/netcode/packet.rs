@@ -1,5 +1,9 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    ops::Deref,
+};
 
+use log::{Level, log};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio_tungstenite::tungstenite::Message;
@@ -38,18 +42,25 @@ impl From<&Packet> for Message {
     }
 }
 
+type ResponseChanges = HashMap<String, HashMap<String, Value>>;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ResponsePacket {
     #[serde(rename = "type")]
     pub packet_type: String,
     pub id: Option<String>,
     pub is_starting_player: bool,
+    #[serde(skip)]
     pub request_data: HashMap<String, Value>,
+    #[serde(rename = "data")]
     pub response_data: HashMap<String, Value>,
     #[serde(skip)]
     pub response_cards: HashMap<String, CardCollection>,
     pub error: Option<String>,
-    pub changes: HashMap<String, HashMap<String, Value>>,
+    #[serde(skip)]
+    pub changes: (ResponseChanges, ResponseChanges),
+    #[serde(rename = "changes")]
+    pub personalized_chages: ResponseChanges,
 }
 impl ResponsePacket {
     pub fn new(
@@ -66,7 +77,8 @@ impl ResponsePacket {
             response_data,
             response_cards: HashMap::new(),
             error: None,
-            changes: HashMap::new(),
+            changes: (HashMap::new(), HashMap::new()),
+            personalized_chages: HashMap::new(),
         }
     }
 
@@ -84,6 +96,22 @@ impl ResponsePacket {
         self.response_cards.insert(key.to_string(), cards);
     }
 
+    pub const fn get_player_changes(&mut self, player: &Player) -> &mut ResponseChanges {
+        if player.is_starting_player {
+            &mut self.changes.0
+        } else {
+            &mut self.changes.1
+        }
+    }
+
+    pub const fn get_opponent_changes(&mut self, player: &Player) -> &mut ResponseChanges {
+        if player.is_starting_player {
+            &mut self.changes.1
+        } else {
+            &mut self.changes.0
+        }
+    }
+
     pub fn use_player_changes(&mut self, player: &mut Player) {
         if player.changes.is_empty() {
             return;
@@ -91,13 +119,16 @@ impl ResponsePacket {
 
         let name = player.get_indexed_name();
 
-        if !self.changes.contains_key(&name) {
-            self.changes.insert(name.clone(), HashMap::new());
-        }
+        // Log the changes for both players.
+        for changes in [&mut self.changes.0, &mut self.changes.1] {
+            if !changes.contains_key(&name) {
+                changes.insert(name.clone(), HashMap::new());
+            }
 
-        let changes = self.changes.get_mut(&name).unwrap();
-        for (k, v) in player.changes.clone() {
-            changes.insert(k, v);
+            let chgs = changes.get_mut(&name).unwrap();
+            for (k, v) in player.changes.clone() {
+                chgs.insert(k, v);
+            }
         }
 
         player.changes.clear();
@@ -115,6 +146,7 @@ impl ResponsePacket {
         }
     }
 
+    // TODO: Delete this function.
     pub fn use_player_changes_shared(&mut self, player: &SharedPlayer) {
         let mut player_lock = player.lock().unwrap();
         self.use_player_changes(&mut player_lock);
@@ -135,14 +167,15 @@ impl ResponsePacket {
             return;
         }
 
+        let changes = self.get_player_changes(player);
         let hash = card_lock.hash.to_string();
-        if !self.changes.contains_key(&hash) {
-            self.changes.insert(hash.clone(), HashMap::new());
+        if !changes.contains_key(&hash) {
+            changes.insert(hash.clone(), HashMap::new());
         }
 
-        let changes = self.changes.get_mut(&hash).unwrap();
+        let chgs = changes.get_mut(&hash).unwrap();
         for (k, v) in card_lock.changes.clone() {
-            changes.insert(k, v);
+            chgs.insert(k, v);
         }
 
         card_lock.changes.clear();
@@ -171,6 +204,14 @@ impl ResponsePacket {
                     json_cards.push(serde_json::to_value(clone).unwrap());
                 }
 
+                log!(
+                    Level::Debug,
+                    "Card for {}: {} {}",
+                    player_lock.is_starting_player,
+                    card_lock.has_sent_to_player1,
+                    card_lock.has_sent_to_player2
+                );
+
                 card_lock.has_sent_to_player1 = card_lock.has_sent_to_player1 || is_player_1;
                 card_lock.has_sent_to_player2 = card_lock.has_sent_to_player2 || !is_player_1;
             }
@@ -197,17 +238,24 @@ impl ResponsePacket {
     }
 
     pub fn send_to(
-        &self,
+        &mut self,
         sink: &Tx,
         player: Option<&SharedPlayer>,
     ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
         let packet = if let Some(player) = player {
-            &self.prepare_for_send(player)
+            &mut self.prepare_for_send(player)
         } else {
             self
         };
 
-        sink.unbounded_send(packet.into())
+        if let Some(player) = player {
+            let changes = packet.get_player_changes(&player.lock().unwrap()).clone();
+            packet.personalized_chages.clone_from(&changes);
+        }
+
+        sink.unbounded_send(packet.deref().into())?;
+        packet.personalized_chages.clear();
+        Ok(())
     }
 }
 impl From<ResponsePacket> for Message {

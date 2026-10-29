@@ -155,6 +155,7 @@ impl Games {
             response.is_starting_player = !player_lock.is_starting_player;
             drop(player_lock);
 
+            // FIXME: This doesn't send the mana change in the packet.
             game_lock.end_turn(&mut Some(&mut response));
             game_lock.send_packet(response);
             return;

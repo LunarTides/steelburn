@@ -94,7 +94,7 @@ impl Game {
     pub fn send_packet_to(
         &self,
         peer: SocketAddr,
-        packet: &ResponsePacket,
+        packet: &mut ResponsePacket,
         player: Option<&SharedPlayer>,
     ) -> Option<()> {
         // TODO: Is unwrap safe here?
@@ -181,7 +181,7 @@ impl Game {
         friendly_response.use_player_changes_shared(&player_lock.get_opponent(self));
         let player_peer = player_lock.peer;
         drop(player_lock);
-        self.send_packet_to(player_peer, &friendly_response, Some(&player));
+        self.send_packet_to(player_peer, &mut friendly_response, Some(player));
 
         // Opponent
         let mut opponent_response = response.clone();
@@ -195,7 +195,7 @@ impl Game {
         opponent_response.use_player_changes_shared(&player_lock.get_opponent(self));
         self.send_packet_to(
             player_lock.get_opponent_peer(self),
-            &opponent_response,
+            &mut opponent_response,
             Some(&player_lock.get_opponent(self)),
         );
     }

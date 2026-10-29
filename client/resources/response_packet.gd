@@ -13,13 +13,9 @@ extends Resource
 	set(value):
 		is_starting_player = value
 		emit_changed()
-@export var request_data: Dictionary:
+@export var data: Dictionary:
 	set(value):
-		request_data = value
-		emit_changed()
-@export var response_data: Dictionary:
-	set(value):
-		response_data = value
+		data = value
 		emit_changed()
 @export var error: String:
 	set(value):
@@ -38,8 +34,7 @@ static func from(dict: Dictionary) -> ResponsePacket:
 	if new_id:
 		packet.id = new_id
 	packet.is_starting_player = dict.get("is_starting_player")
-	packet.request_data = dict.get("request_data")
-	packet.response_data = dict.get("response_data")
+	packet.data = dict.get("data")
 	var err = dict.get("error")
 	if err:
 		packet.error = err
@@ -52,8 +47,7 @@ func to_dict() -> Dictionary:
 	dict.set("type", type)
 	dict.set("id", id)
 	dict.set("is_starting_player", is_starting_player)
-	dict.set("request_data", request_data)
-	dict.set("response_data", response_data)
+	dict.set("data", data)
 	dict.set("error", error)
 	dict.set("changes", changes)
 	return dict 
@@ -63,7 +57,7 @@ func to_json() -> String:
 	return JSON.stringify(to_dict())
 
 
-func set_properties(object: Object, copy_from = response_data):
+func set_properties(object: Object, copy_from = data):
 	for key in copy_from.keys():
 		var value = copy_from[key]
 		object.set(key, value)

@@ -181,9 +181,9 @@ func _on_area_exited(area: Area3D) -> void:
 func _on_packet_recieved(packet: ResponsePacket) -> void:
 	if packet.type == "play_card":
 		# TODO: Make this cleaner somehow.
-		if typeof(packet.response_data.card) == TYPE_STRING and packet.response_data.card != card.hash:
+		if typeof(packet.data.card) == TYPE_STRING and packet.data.card != card.hash:
 			return
-		elif typeof(packet.response_data.card) == TYPE_DICTIONARY and packet.response_data.card.hash != card.hash:
+		elif typeof(packet.data.card) == TYPE_DICTIONARY and packet.data.card.hash != card.hash:
 			return
 		
 		queue_free()
