@@ -5,6 +5,10 @@ extends Resource
 	set(value):
 		name = value
 		emit_changed()
+@export var type: String:
+	set(value):
+		type = value
+		emit_changed()
 @export var cost: int:
 	set(value):
 		cost = value

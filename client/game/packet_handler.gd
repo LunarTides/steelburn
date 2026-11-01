@@ -97,4 +97,6 @@ func play_card(packet: ResponsePacket):
 	if not player.is_opponent:
 		return
 	
+	# TODO: If the opponent plays a card, we need to remove the card from the hand without making any assumptions.
+	
 	Card.create_from_dict(packet.data.card)

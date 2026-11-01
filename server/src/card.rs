@@ -1,5 +1,6 @@
 use mlua::FromLua;
 use mlua::prelude::*;
+use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -8,7 +9,6 @@ use ulid::Ulid;
 
 use crate::Shared;
 use crate::game::Game;
-use crate::game::SharedGame;
 use crate::player::SharedPlayer;
 
 #[derive(Debug, Default, Serialize, Clone)]
@@ -18,6 +18,30 @@ pub enum Location {
     Deck,
     Hand,
     Board,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+pub enum Type {
+    #[default]
+    Minion,
+    Spell,
+}
+impl FromLua for Type {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        // TODO: Don't unwrap.
+        let card_type = value.as_string().unwrap();
+
+        match card_type.to_string_lossy().to_lowercase().as_str() {
+            "minion" => Ok(Type::Minion),
+            "spell" => Ok(Type::Spell),
+            // TODO: Don't panic.
+            unknown => panic!("No such card type: '{unknown}'"),
+        }
+
+        // // TODO: Don't unwrap.
+        // log!(Level::Debug, "{}", card_type.to_string_lossy());
+        // Ok(serde_json::from_str::<Self>(&card_type.to_string_lossy()).unwrap())
+    }
 }
 
 pub type SharedCard = Shared<Card>;
@@ -37,6 +61,8 @@ pub struct Card {
     pub cost: i32,
     pub text: String,
     pub id: String,
+    #[serde(rename = "type")]
+    pub card_type: Type,
     pub location: Location,
     #[serde(skip)]
     pub onplay: Option<LuaFunction>,
@@ -71,6 +97,7 @@ impl Clone for Card {
             text: self.text.clone(),
             id: self.id.clone(),
             owner: self.owner.clone(),
+            card_type: self.card_type.clone(),
             location: self.location.clone(),
             onplay: self.onplay.clone(),
             hash: Ulid::generate(),
@@ -86,6 +113,7 @@ impl FromLua for Card {
         let c = value.as_table().unwrap();
 
         let name = c.get::<String>("name").unwrap();
+        let card_type = c.get::<Type>("type").unwrap();
         let cost = c.get::<i32>("cost").unwrap_or(0);
         let text = c.get::<String>("text").unwrap_or_else(|_| String::new());
         let id = c.get::<String>("id").unwrap_or_else(|_| name.clone());
@@ -93,6 +121,7 @@ impl FromLua for Card {
 
         Ok(Self {
             name,
+            card_type,
             cost,
             text,
             id,

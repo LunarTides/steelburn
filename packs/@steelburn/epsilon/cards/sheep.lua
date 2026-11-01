@@ -1,5 +1,6 @@
 local card = {}
 card.name = "Sheep"
+card.type = "Minion"
 card.cost = 1
 
 function card.onplay()

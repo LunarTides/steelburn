@@ -1,4 +1,4 @@
-use std::{cmp, collections::HashMap, error::Error, fmt::Display, net::SocketAddr};
+use std::{collections::HashMap, error::Error, fmt::Display, net::SocketAddr};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -6,7 +6,7 @@ use ulid::Ulid;
 
 use crate::{
     Shared,
-    card::{Card, Location, SharedCard},
+    card::{Card, Location, SharedCard, Type},
     card_collection::CardCollection,
     game::{Game, SharedGame},
     netcode::net::{Poisoned, SharedPlayerInfo},
@@ -147,14 +147,15 @@ impl Player {
         self.hand.erase_with_hash(card_lock.hash);
         self.deck.erase_with_hash(card_lock.hash);
         self.board.erase_with_hash(card_lock.hash);
-        card_lock.location = Location::Oblivion;
+        // FIXME: This isn't sent to the client, since the server loses track of this card after it is oblivionated.
+        card_lock.set_location(Location::Oblivion);
     }
 
     pub fn add_to_hand(&mut self, card: &SharedCard) {
         self.hand.push(card.clone());
         // TODO: Broadcast to client.
         // self.changes.insert("hand".into(), ...);
-        card.lock().unwrap().location = Location::Hand;
+        card.lock().unwrap().set_location(Location::Hand);
     }
 
     pub fn play_card(&mut self, hash: Ulid) -> Result<SharedCard, PlayCardError> {
@@ -177,8 +178,11 @@ impl Player {
         self.reduce_mana(card.lock().unwrap().cost);
         self.remove_card_from_location(&card);
 
-        self.board.push(card.clone());
-        card.lock().unwrap().set_location(Location::Board);
+        if card.lock().unwrap().card_type == Type::Minion {
+            self.board.push(card.clone());
+            card.lock().unwrap().set_location(Location::Board);
+        }
+
         Ok(card)
     }
 

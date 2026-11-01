@@ -101,6 +101,7 @@ func update_model():
 	name_mesh.visible = render_mode == RenderMode.Default
 	text_mesh.visible = render_mode == RenderMode.Default
 	# TODO: Rotate attack and health mesh depending on the side of the board.
+	# TODO: Only show if the card has an attack / health (not 0)
 	attack_mesh.visible = true
 	health_mesh.visible = true
 	health_frame_mesh.visible = health_mesh.visible

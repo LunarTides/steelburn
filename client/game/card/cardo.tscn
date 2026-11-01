@@ -60,7 +60,7 @@ font_size = 96
 
 [node name="TribeLabel" type="Label3D" parent="Labels" unique_id=241134728]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.2, 1.8924124)
-text = "Minion"
+text = "Tribe / School"
 font_size = 48
 
 [connection signal="area_entered" from="." to="." method="_on_area_entered"]
