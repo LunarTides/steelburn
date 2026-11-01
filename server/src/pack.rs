@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::{
     card::{Card, SharedCard},
     card_collection::CardCollection,
-    game::SharedGame,
+    game::Game,
 };
 
 // TODO: Maybe don't create the packs for every game. Maybe these should be stored globally in memory at all times.
@@ -98,7 +98,7 @@ impl Pack {
         paths
     }
 
-    pub fn import(game: &SharedGame, path: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn import(game: &Game, path: &str) -> Result<Self, Box<dyn Error>> {
         let pack_file_contents = fs::read_to_string(PathBuf::from(path).join("pack.toml")).unwrap();
         let mut pack = toml::from_str::<Self>(&pack_file_contents)?;
 

@@ -63,7 +63,7 @@ impl CardCollection {
         if deckcode == "debug" {
             let mut cards = vec![];
 
-            let pack = Pack::import(game, "../packs/@steelburn/epsilon")?;
+            let pack = Pack::import(&game.lock().unwrap(), "../packs/@steelburn/epsilon")?;
             let sheep = pack.cards.get_with_id("Sheep").unwrap();
 
             for _ in 0..30 {

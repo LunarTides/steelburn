@@ -18,7 +18,7 @@ signal board_changed
 		emit_changed()
 @export var empty_mana: int = 0:
 	set(value):
-		mana = value
+		empty_mana = value
 		emit_changed()
 
 # NOTE: Elements are either Card or null.

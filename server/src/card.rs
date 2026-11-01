@@ -7,6 +7,7 @@ use std::{fmt::Display, sync::Mutex};
 use ulid::Ulid;
 
 use crate::Shared;
+use crate::game::Game;
 use crate::game::SharedGame;
 use crate::player::SharedPlayer;
 
@@ -127,13 +128,12 @@ impl Card {
         reason = "Can't drop `game_lock` while `lua_vm` is in scope."
     )]
     pub fn parse_from_file_content(
-        game: &SharedGame,
+        game: &Game,
         file_content: String,
         file_name: String,
     ) -> LuaResult<Self> {
-        let game_lock = game.lock().unwrap();
-        let lua_vm = &game_lock.lua_vm;
-        lua_vm.prepare_for_resource(&game_lock)?;
+        let lua_vm = &game.lua_vm;
+        lua_vm.prepare_for_resource(&game)?;
 
         let card = lua_vm.lua.load(file_content).set_name(file_name).eval()?;
         Ok(card)

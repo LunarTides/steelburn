@@ -28,7 +28,7 @@ impl LuaVM {
         Ok(())
     }
 
-    pub fn prepare_for_resource(&self, game_lock: &MutexGuard<Game>) -> Result<()> {
+    pub fn prepare_for_resource(&self, game: &Game) -> Result<()> {
         let globals = self.lua.globals();
 
         // TODO: Implement

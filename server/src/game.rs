@@ -8,6 +8,7 @@ use crate::{
     card_collection::CardCollection,
     lua::LuaVM,
     netcode::{net::SharedPlayerInfo, packet::ResponsePacket, peer_map::PeerMap},
+    pack::Pack,
     player::{Player, SharedPlayer},
 };
 
@@ -107,6 +108,7 @@ impl Game {
 
     pub fn start_game(&self, response: &mut Option<&mut ResponsePacket>) {
         let mut player1 = self.player1.lock().unwrap();
+        player1.set_empty_mana(1);
         player1.set_mana(1);
 
         let cards = player1.draw_cards(3);
@@ -118,6 +120,23 @@ impl Game {
         let cards = player2.draw_cards(4);
         drop(player2);
         self.send_draw_cards_packet(response, &self.player2, &cards);
+
+        // Create the coin.
+        let mut player2 = self.player2.lock().unwrap();
+
+        // TODO: Don't rely on epsilon.
+        // TODO: Don't re-import the pack. Store the packs globally.
+        // TODO: The coin here might be linked.
+        let pack = Pack::import(self, "../packs/@steelburn/epsilon").unwrap();
+        let the_coin = pack.cards.get_with_id("The Coin").unwrap();
+        player2.add_to_hand(the_coin);
+        drop(player2);
+        // TODO: This probably shouldn't be sent as a draw card packet?
+        self.send_draw_cards_packet(
+            response,
+            &self.player2,
+            &CardCollection::from_vec(vec![the_coin.clone()]).into(),
+        );
 
         let mut player1 = self.player1.lock().unwrap();
         let mut player2 = self.player2.lock().unwrap();
@@ -148,6 +167,7 @@ impl Game {
         let mut current_player_lock = current_player.lock().unwrap();
 
         // TODO: Cap to empty mana.
+        current_player_lock.add_empty_mana(1);
         current_player_lock.add_mana(1);
         let cards = current_player_lock.draw_cards(1);
         drop(current_player_lock);
@@ -159,6 +179,7 @@ impl Game {
         // drop(opposing_player);
     }
 
+    // TODO: Maybe think about not using Shared values in these methods?
     pub fn send_draw_cards_packet(
         &self,
         response: &mut Option<&mut ResponsePacket>,

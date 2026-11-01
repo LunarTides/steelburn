@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt::Display, net::SocketAddr};
+use std::{cmp, collections::HashMap, error::Error, fmt::Display, net::SocketAddr};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -143,10 +143,18 @@ impl Player {
     }
 
     pub fn remove_card_from_location(&mut self, card: &SharedCard) {
-        let card_lock = card.lock().unwrap();
+        let mut card_lock = card.lock().unwrap();
         self.hand.erase_with_hash(card_lock.hash);
         self.deck.erase_with_hash(card_lock.hash);
         self.board.erase_with_hash(card_lock.hash);
+        card_lock.location = Location::Oblivion;
+    }
+
+    pub fn add_to_hand(&mut self, card: &SharedCard) {
+        self.hand.push(card.clone());
+        // TODO: Broadcast to client.
+        // self.changes.insert("hand".into(), ...);
+        card.lock().unwrap().location = Location::Hand;
     }
 
     pub fn play_card(&mut self, hash: Ulid) -> Result<SharedCard, PlayCardError> {
@@ -180,11 +188,39 @@ impl Player {
     }
     pub fn add_mana(&mut self, mana: i32) {
         self.mana = self.mana.saturating_add(mana);
+        if self.mana > self.empty_mana {
+            self.mana = self.empty_mana;
+        }
+
         self.changes.insert("mana".into(), self.mana.into());
     }
     pub fn reduce_mana(&mut self, mana: i32) {
         self.mana = self.mana.saturating_sub(mana);
         self.changes.insert("mana".into(), self.mana.into());
+    }
+
+    pub fn set_empty_mana(&mut self, empty_mana: i32) {
+        self.empty_mana = empty_mana;
+        if self.empty_mana > self.max_mana {
+            self.empty_mana = self.max_mana;
+        }
+
+        self.changes
+            .insert("empty_mana".into(), self.empty_mana.into());
+    }
+    pub fn add_empty_mana(&mut self, empty_mana: i32) {
+        self.empty_mana = self.empty_mana.saturating_add(empty_mana);
+        if self.empty_mana > self.max_mana {
+            self.empty_mana = self.max_mana;
+        }
+
+        self.changes
+            .insert("empty_mana".into(), self.empty_mana.into());
+    }
+    pub fn reduce_empty_mana(&mut self, empty_mana: i32) {
+        self.empty_mana = self.empty_mana.saturating_sub(empty_mana);
+        self.changes
+            .insert("empty_mana".into(), self.empty_mana.into());
     }
 
     pub fn can_afford<'a>(&self, card: &'a SharedCard) -> Result<bool, Poisoned<'a, Card>> {
