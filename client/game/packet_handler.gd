@@ -57,9 +57,6 @@ func begin_game(packet: ResponsePacket):
 	Game.player.is_starting_player = packet.is_starting_player
 	Game.opponent.is_starting_player = not packet.is_starting_player
 	
-	# TODO: Maybe don't assume this on client.
-	Game.starting_player.mana = 1
-	
 	print("Game started.")
 	Game.start()
 

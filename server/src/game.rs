@@ -107,6 +107,8 @@ impl Game {
 
     pub fn start_game(&self, response: &mut Option<&mut ResponsePacket>) {
         let mut player1 = self.player1.lock().unwrap();
+        player1.set_mana(1);
+
         let cards = player1.draw_cards(3);
         // NOTE: Draw cards requires the opposing player to be free.
         drop(player1);
@@ -119,8 +121,6 @@ impl Game {
 
         let mut player1 = self.player1.lock().unwrap();
         let mut player2 = self.player2.lock().unwrap();
-
-        player1.mana = 1;
 
         log!(
             Level::Debug,
@@ -171,16 +171,19 @@ impl Game {
 
         // Send cards to clients.
         let response = response.as_mut().unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        response.use_player_changes(&mut player_lock);
+        response.use_player_changes_shared(&player_lock.get_opponent(self));
+        let player_peer = player_lock.peer;
+        let opponent_peer = player_lock.get_opponent_peer(self);
+        let opponent = player_lock.get_opponent(self);
+        drop(player_lock);
 
+        // Friendly
         let mut friendly_response = response.clone();
         friendly_response.packet_type = "draw_cards".into();
         friendly_response.add_cards("cards", cards.clone());
-        let mut player_lock = player.lock().unwrap();
-        friendly_response.is_starting_player = player_lock.is_starting_player;
-        friendly_response.use_player_changes(&mut player_lock);
-        friendly_response.use_player_changes_shared(&player_lock.get_opponent(self));
-        let player_peer = player_lock.peer;
-        drop(player_lock);
         self.send_packet_to(player_peer, &mut friendly_response, Some(player));
 
         // Opponent
@@ -189,15 +192,7 @@ impl Game {
         opponent_response
             .response_data
             .insert("amount".into(), cards.len().into());
-        let mut player_lock = player.lock().unwrap();
-        opponent_response.is_starting_player = player_lock.is_starting_player;
-        opponent_response.use_player_changes(&mut player_lock);
-        opponent_response.use_player_changes_shared(&player_lock.get_opponent(self));
-        self.send_packet_to(
-            player_lock.get_opponent_peer(self),
-            &mut opponent_response,
-            Some(&player_lock.get_opponent(self)),
-        );
+        self.send_packet_to(opponent_peer, &mut opponent_response, Some(&opponent));
     }
 
     pub fn get_current_player(&self) -> SharedPlayer {
