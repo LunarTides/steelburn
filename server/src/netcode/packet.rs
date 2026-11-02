@@ -9,7 +9,7 @@ use serde_json::Value;
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::{
-    card::SharedCard,
+    card::{Location, SharedCard},
     card_collection::CardCollection,
     netcode::net::Tx,
     player::{Player, SharedPlayer},
@@ -144,6 +144,16 @@ impl ResponsePacket {
         for card in &player.board {
             self.use_card_changes_shared(player, &card);
         }
+        for card in &player.oblivion {
+            if card.lock().unwrap().location != Location::Oblivion {
+                // The card is no longer in oblivion.
+                continue;
+            }
+
+            self.use_card_changes_shared(player, &card);
+        }
+
+        player.oblivion.clear();
     }
 
     // TODO: Delete this function.

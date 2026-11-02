@@ -37,6 +37,8 @@ pub struct Player {
     pub hand: CardCollection,
     #[serde(skip)]
     pub board: CardCollection,
+    #[serde(skip)]
+    pub oblivion: CardCollection,
     pub changes: HashMap<String, Value>,
 }
 
@@ -58,6 +60,7 @@ impl Player {
             deck: CardCollection::default(),
             hand: CardCollection::default(),
             board: CardCollection::default(),
+            oblivion: CardCollection::default(),
             changes: HashMap::new(),
         }
     }
@@ -147,8 +150,11 @@ impl Player {
         self.hand.erase_with_hash(card_lock.hash);
         self.deck.erase_with_hash(card_lock.hash);
         self.board.erase_with_hash(card_lock.hash);
-        // FIXME: This isn't sent to the client, since the server loses track of this card after it is oblivionated.
         card_lock.set_location(Location::Oblivion);
+
+        drop(card_lock);
+        // Keep track of the oblivionated card until the next packet is sent.
+        self.oblivion.push(card.clone());
     }
 
     pub fn add_to_hand(&mut self, card: &SharedCard) {

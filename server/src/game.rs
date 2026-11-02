@@ -135,7 +135,7 @@ impl Game {
         self.send_draw_cards_packet(
             response,
             &self.player2,
-            &CardCollection::from_vec(vec![the_coin.clone()]).into(),
+            &CardCollection::from_vec(vec![the_coin.clone()]),
         );
 
         let mut player1 = self.player1.lock().unwrap();

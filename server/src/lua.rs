@@ -1,5 +1,3 @@
-use std::sync::MutexGuard;
-
 use mlua::prelude::*;
 use mlua::{Lua, Result};
 

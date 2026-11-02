@@ -11,7 +11,7 @@ use crate::Shared;
 use crate::game::Game;
 use crate::player::SharedPlayer;
 
-#[derive(Debug, Default, Serialize, Clone)]
+#[derive(Debug, Default, Serialize, Clone, PartialEq, Eq)]
 pub enum Location {
     #[default]
     Oblivion,
@@ -20,7 +20,7 @@ pub enum Location {
     Board,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum Type {
     #[default]
     Minion,
@@ -32,8 +32,8 @@ impl FromLua for Type {
         let card_type = value.as_string().unwrap();
 
         match card_type.to_string_lossy().to_lowercase().as_str() {
-            "minion" => Ok(Type::Minion),
-            "spell" => Ok(Type::Spell),
+            "minion" => Ok(Self::Minion),
+            "spell" => Ok(Self::Spell),
             // TODO: Don't panic.
             unknown => panic!("No such card type: '{unknown}'"),
         }
@@ -162,7 +162,7 @@ impl Card {
         file_name: String,
     ) -> LuaResult<Self> {
         let lua_vm = &game.lua_vm;
-        lua_vm.prepare_for_resource(&game)?;
+        lua_vm.prepare_for_resource(game)?;
 
         let card = lua_vm.lua.load(file_content).set_name(file_name).eval()?;
         Ok(card)

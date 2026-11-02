@@ -107,6 +107,11 @@ impl CardCollection {
         self.cards.remove(index);
     }
 
+    pub fn clear(&mut self) {
+        self.hashes.clear();
+        self.cards.clear();
+    }
+
     pub const fn len(&self) -> usize {
         self.cards.len()
     }
