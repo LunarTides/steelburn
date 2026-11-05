@@ -166,9 +166,10 @@ impl Game {
         let current_player = self.get_current_player();
         let mut current_player_lock = current_player.lock().unwrap();
 
-        // TODO: Cap to empty mana.
         current_player_lock.add_empty_mana(1);
-        current_player_lock.add_mana(1);
+        // TODO: Apply overload.
+        let new_mana = current_player_lock.empty_mana;
+        current_player_lock.set_mana(new_mana);
         let cards = current_player_lock.draw_cards(1);
         drop(current_player_lock);
         self.send_draw_cards_packet(response, &current_player, &cards);
