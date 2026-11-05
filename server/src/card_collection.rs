@@ -13,6 +13,7 @@ use crate::{
 pub struct CardCollection {
     cards: Vec<SharedCard>,
     hashes: Vec<Ulid>,
+    dirty: bool,
 }
 
 impl IntoIterator for CardCollection {
@@ -56,7 +57,11 @@ impl CardCollection {
             hashes.push(card.lock().unwrap().hash);
         }
 
-        Self { cards: vec, hashes }
+        Self {
+            cards: vec,
+            hashes,
+            dirty: false,
+        }
     }
 
     pub fn from_deckcode(game: &SharedGame, deckcode: &str) -> Result<Self, Box<dyn Error>> {
@@ -74,42 +79,57 @@ impl CardCollection {
             return Ok(Self::from_vec(cards));
         }
 
+        // TODO: Implement.
         unimplemented!();
     }
 
     pub fn push(&mut self, card: SharedCard) {
         self.hashes.push(card.lock().unwrap().hash);
         self.cards.push(card);
+        self.make_dirty();
     }
 
     pub fn pop(&mut self) -> Option<SharedCard> {
+        self.make_dirty();
         self.hashes.pop();
         self.cards.pop()
     }
 
-    pub fn erase(&mut self, val: &Card) {
-        let Some(index) = self
+    pub fn erase(&mut self, val: &Card) -> Option<()> {
+        let index = self
             .cards
             .iter()
-            .position(|card| card.lock().unwrap().hash == val.hash)
-        else {
-            return;
-        };
+            .position(|card| card.lock().unwrap().hash == val.hash)?;
         self.hashes.remove(index);
         self.cards.remove(index);
+        self.make_dirty();
+        Some(())
     }
 
-    pub fn erase_with_hash(&mut self, hash: Ulid) {
-        let Some(index) = self.hashes.iter().position(|h| *h == hash) else {
-            return;
-        };
+    pub fn erase_with_hash(&mut self, hash: Ulid) -> Option<()> {
+        let index = self.hashes.iter().position(|h| *h == hash)?;
         self.hashes.remove(index);
         self.cards.remove(index);
+        self.make_dirty();
+        Some(())
     }
 
     pub fn clear(&mut self) {
         self.hashes.clear();
         self.cards.clear();
+        self.make_dirty();
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+
+    pub fn make_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    pub fn clear_dirty(&mut self) {
+        self.dirty = false;
     }
 
     pub const fn len(&self) -> usize {

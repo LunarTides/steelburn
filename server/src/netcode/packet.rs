@@ -113,6 +113,25 @@ impl ResponsePacket {
     }
 
     pub fn use_player_changes(&mut self, player: &mut Player) {
+        if player.hand.is_dirty() {
+            player
+                .changes
+                .insert("hand_size".into(), player.hand.len().into());
+            player.hand.clear_dirty();
+        }
+        if player.deck.is_dirty() {
+            player
+                .changes
+                .insert("deck_size".into(), player.deck.len().into());
+            player.deck.clear_dirty();
+        }
+        if player.board.is_dirty() {
+            player
+                .changes
+                .insert("board_size".into(), player.board.len().into());
+            player.board.clear_dirty();
+        }
+
         if player.changes.is_empty() {
             return;
         }

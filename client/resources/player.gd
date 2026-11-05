@@ -20,6 +20,18 @@ signal board_changed
 	set(value):
 		empty_mana = value
 		emit_changed()
+@export var hand_size: int = 0:
+	set(value):
+		hand_size = value
+		emit_changed()
+@export var deck_size: int = 0:
+	set(value):
+		deck_size = value
+		emit_changed()
+@export var board_size: int = 0:
+	set(value):
+		board_size = value
+		emit_changed()
 
 # NOTE: Elements are either Card or null.
 var hand: Array[Variant]

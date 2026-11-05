@@ -19,6 +19,7 @@ func _ready() -> void:
 	for child in get_children():
 		child.queue_free()
 	
+	player.changed.connect(update)
 	player.hand_changed.connect(update)
 	update()
 
@@ -33,7 +34,7 @@ func update():
 	
 	if is_opponent:
 		# TODO: Support revealed cards in the opponent's hand.
-		var amount = player.hand.size() - children.size()
+		var amount = player.hand_size - children.size()
 		if amount < 0:
 			# Get rid of excess cards.
 			for i in range(-amount):
