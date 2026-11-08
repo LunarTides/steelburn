@@ -28,7 +28,7 @@ func _process(delta):
 		while socket.get_available_packet_count():
 			var json = socket.get_packet().get_string_from_utf8()
 			print()
-			print(json)
+			print("Player %d: %s" % [1 if Game.player.is_starting_player else 2, json])
 			var packet = ResponsePacket.from(JSON.parse_string(json))
 			packed_recieved.emit(packet)
 	elif state == WebSocketPeer.STATE_CLOSING:

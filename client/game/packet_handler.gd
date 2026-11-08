@@ -79,6 +79,7 @@ func draw_cards(packet: ResponsePacket):
 
 
 func opponent_draw_cards(packet: ResponsePacket):
+	# TODO: Don't assume this here. Use the `deck_size` of the player's changes instead.
 	var amount = packet.data.amount
 	var null_array = []
 	null_array.resize(amount)
@@ -96,7 +97,5 @@ func play_card(packet: ResponsePacket):
 	var player = packet.get_relevant_player()
 	if not player.is_opponent:
 		return
-	
-	# TODO: If the opponent plays a card, we need to remove the card from the hand without making any assumptions.
 	
 	Card.create_from_dict(packet.data.card)
