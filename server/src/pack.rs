@@ -112,7 +112,6 @@ impl Pack {
             };
 
             let card = Card::parse_from_file_content(
-                game,
                 file_content,
                 format!("{}/{}/{}", pack.author, pack.name, file_name),
             )?;

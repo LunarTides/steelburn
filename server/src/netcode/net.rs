@@ -67,16 +67,16 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     }
 
     let game_lock = game.lock().unwrap();
-    log!(
-        Level::Debug,
-        "Deck 1: {:?}",
-        game_lock.player1.lock().unwrap().deck
-    );
-    log!(
-        Level::Debug,
-        "Deck 2: {:?}",
-        game_lock.player2.lock().unwrap().deck
-    );
+    // log!(
+    //     Level::Debug,
+    //     "Deck 1: {:?}",
+    //     game_lock.player1.lock().unwrap().deck
+    // );
+    // log!(
+    //     Level::Debug,
+    //     "Deck 2: {:?}",
+    //     game_lock.player2.lock().unwrap().deck
+    // );
 
     log!(Level::Debug, "Sending opponent info");
     for i in 0..2 {

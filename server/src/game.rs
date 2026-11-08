@@ -23,7 +23,6 @@ pub struct Game {
     pub player2_peer: SocketAddr,
     pub turn: u64,
     pub current_player_peer: SocketAddr,
-    pub lua_vm: LuaVM,
     pub peer_map: PeerMap,
 }
 
@@ -54,7 +53,6 @@ impl Game {
             id,
             turn: 0,
             current_player_peer: player1_peer,
-            lua_vm: LuaVM::start().unwrap(),
             peer_map,
         }
     }

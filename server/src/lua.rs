@@ -1,11 +1,13 @@
+use std::sync::MutexGuard;
+
 use mlua::prelude::*;
 use mlua::{Lua, Result};
 
-use crate::card::SharedCard;
+use crate::card::{Card, SharedCard};
 use crate::game::Game;
-use crate::player::SharedPlayer;
+use crate::player::{Player, SharedPlayer};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct LuaVM {
     pub lua: Lua,
 }

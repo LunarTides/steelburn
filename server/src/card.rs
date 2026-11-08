@@ -9,6 +9,9 @@ use ulid::Ulid;
 
 use crate::Shared;
 use crate::game::Game;
+use crate::lua::LuaCard;
+use crate::lua::LuaPlayer;
+use crate::lua::LuaVM;
 use crate::player::SharedPlayer;
 
 #[derive(Debug, Default, Serialize, Clone, PartialEq, Eq)]
@@ -73,6 +76,8 @@ pub struct Card {
     pub has_sent_to_player2: bool,
     #[serde(skip)]
     pub changes: HashMap<String, Value>,
+    #[serde(skip)]
+    pub lua: Lua,
 }
 
 impl Display for Card {
@@ -104,6 +109,7 @@ impl Clone for Card {
             has_sent_to_player1: false,
             has_sent_to_player2: false,
             changes: HashMap::new(),
+            lua: Lua::default(),
         }
     }
 }
@@ -152,22 +158,22 @@ impl Card {
             .insert("location".into(), serde_json::to_value(location).unwrap());
     }
 
-    #[allow(
-        clippy::significant_drop_tightening,
-        reason = "Can't drop `game_lock` while `lua_vm` is in scope."
-    )]
-    pub fn parse_from_file_content(
-        game: &Game,
-        file_content: String,
-        file_name: String,
-    ) -> LuaResult<Self> {
-        let lua_vm = &game.lua_vm;
-        lua_vm.prepare_for_resource(game)?;
+    pub fn parse_from_file_content(file_content: String, file_name: String) -> LuaResult<Self> {
+        let lua = Lua::new();
+        lua.sandbox(true)?;
 
-        let card = lua_vm.lua.load(file_content).set_name(file_name).eval()?;
+        let mut card = Card::default();
+        lua.globals().set(
+            "card",
+            <SharedCard as Into<LuaCard>>::into(SharedCard::new(Mutex::new(card))),
+        )?;
+
+        card = lua.load(file_content).set_name(file_name).eval()?;
+        card.lua = lua;
         Ok(card)
     }
 
+    /// Return the name of the owner, if the card has an owner.
     pub fn get_owner_name(&self) -> Option<String> {
         let owner_clone = self.owner.clone()?;
         let owner_lock = owner_clone.lock().unwrap();
@@ -175,6 +181,9 @@ impl Card {
         Some(info_lock.username.clone())
     }
 
+    /// Remove the card from wherever it is.
+    ///
+    /// This tries removing the card from the owner's hand, deck, and board.
     pub fn remove_from_location(&self) {
         let Some(owner) = &self.owner else {
             return;

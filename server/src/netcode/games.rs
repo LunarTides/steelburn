@@ -9,8 +9,11 @@ use ulid::Ulid;
 
 use crate::{
     Shared,
+    card::SharedCard,
     game::{Game, SharedGame},
+    lua::{LuaCard, LuaPlayer},
     netcode::{anticheat, net::SharedPlayerInfo, packet::ResponsePacket, peer_map::PeerMap},
+    player::SharedPlayer,
 };
 
 type GameData = (SharedGame, SocketAddr, SocketAddr);
@@ -206,22 +209,30 @@ impl Games {
                 Ok(card) => card,
             };
 
-            log!(
-                Level::Debug,
-                "Board for {}: {:?} ({})",
-                player_lock.peer,
-                player_lock.board,
-                player_lock.board.len()
-            );
+            // log!(
+            //     Level::Debug,
+            //     "Board for {}: {:?} ({})",
+            //     player_lock.peer,
+            //     player_lock.board,
+            //     player_lock.board.len()
+            // );
             drop(player_lock);
 
             let card_lock = card.lock().unwrap();
 
             // Run the `onplay` function on the lua side.
             if let Some(onplay) = &card_lock.onplay {
-                game_lock
-                    .lua_vm
-                    .prepare_for_card(card.clone().into(), player.clone().into())
+                let globals = card_lock.lua.globals();
+                // TODO: Is unwrap safe?
+                // TODO: Maybe move into general function?
+                globals
+                    .set("self", <SharedCard as Into<LuaCard>>::into(card.clone()))
+                    .unwrap();
+                globals
+                    .set(
+                        "owner",
+                        <SharedPlayer as Into<LuaPlayer>>::into(player.clone()),
+                    )
                     .unwrap();
 
                 let onplay = onplay.clone();
