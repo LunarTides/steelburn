@@ -98,6 +98,7 @@ impl Pack {
         paths
     }
 
+    // TODO: Don't rely on game?
     pub fn import(game: &Game, path: &str) -> Result<Self, Box<dyn Error>> {
         let pack_file_contents = fs::read_to_string(PathBuf::from(path).join("pack.toml")).unwrap();
         let mut pack = toml::from_str::<Self>(&pack_file_contents)?;

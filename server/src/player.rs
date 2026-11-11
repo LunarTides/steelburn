@@ -8,8 +8,8 @@ use crate::{
     Shared,
     card::{Card, Location, SharedCard, Type},
     card_collection::CardCollection,
-    game::{Game, SharedGame},
-    netcode::net::{Poisoned, SharedPlayerInfo},
+    game::SharedGame,
+    netcode::net::{Poisoned, SharedPlayerInfo, Tx},
 };
 
 pub type SharedPlayer = Shared<Player>;
@@ -21,6 +21,8 @@ pub struct Player {
     pub game_id: Ulid,
     #[serde(skip)]
     pub peer: SocketAddr,
+    #[serde(skip)]
+    pub sink: Tx,
     #[allow(
         clippy::struct_field_names,
         reason = "Without the 'player' at the end, it would be a bit unclear what this field is used for."
@@ -40,18 +42,25 @@ pub struct Player {
     #[serde(skip)]
     pub oblivion: CardCollection,
     pub changes: HashMap<String, Value>,
+    #[serde(skip)]
+    opponent: Option<SharedPlayer>,
+    #[serde(skip)]
+    opponent_peer: Option<SocketAddr>,
 }
 
 impl Player {
+    /// Call `set_opponent` on the returned player.
     pub fn new(
         game_id: Ulid,
         peer: SocketAddr,
+        sink: Tx,
         is_starting_player: bool,
         info: SharedPlayerInfo,
     ) -> Self {
         Self {
             game_id,
             peer,
+            sink,
             is_starting_player,
             info,
             mana: 0,
@@ -62,7 +71,23 @@ impl Player {
             board: CardCollection::default(),
             oblivion: CardCollection::default(),
             changes: HashMap::new(),
+            opponent: None,
+            opponent_peer: None,
         }
+    }
+
+    pub fn set_opponent(&mut self, opponent: SharedPlayer, opponent_peer: SocketAddr) {
+        self.opponent = Some(opponent);
+        self.opponent_peer = Some(opponent_peer);
+    }
+
+    pub fn get_opponent(&self) -> SharedPlayer {
+        let opponent = self.opponent.as_ref().unwrap();
+        opponent.clone()
+    }
+
+    pub const fn get_opponent_peer(&self) -> SocketAddr {
+        self.opponent_peer.unwrap()
     }
 
     pub fn setup_deck_from_deckcode(
@@ -104,22 +129,6 @@ impl Player {
     pub fn set_username(&mut self, username: String) {
         self.info.lock().unwrap().username.clone_from(&username);
         self.changes.insert("username".into(), username.into());
-    }
-
-    pub fn get_opponent(&self, game: &Game) -> SharedPlayer {
-        if self.is_starting_player {
-            game.player2.clone()
-        } else {
-            game.player1.clone()
-        }
-    }
-
-    pub const fn get_opponent_peer(&self, game: &Game) -> SocketAddr {
-        if self.is_starting_player {
-            game.player2_peer
-        } else {
-            game.player1_peer
-        }
     }
 
     /// Call `Game.send_draw_cards_packet` after calling this function.

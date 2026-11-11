@@ -55,7 +55,9 @@ impl From<Card> for SharedCard {
 #[derive(Debug, Default, Serialize)]
 pub struct Card {
     #[serde(skip)]
+    /// The player who owns this card.
     pub owner: Option<SharedPlayer>,
+    /// Whether or not this card is owned by the starting player.
     pub is_starting_player: bool,
     pub name: String,
     pub cost: i32,
@@ -68,10 +70,13 @@ pub struct Card {
     pub onplay: Option<LuaFunction>,
     pub hash: Ulid,
     #[serde(skip)]
+    /// Whether or not this card has been sent to the starting player's client.
     pub has_sent_to_player1: bool,
     #[serde(skip)]
+    /// Whether or not this card has been sent to the coin player's client.
     pub has_sent_to_player2: bool,
     #[serde(skip)]
+    /// Field that have changed since the last packet.
     pub changes: HashMap<String, Value>,
 }
 
@@ -133,6 +138,19 @@ impl FromLua for Card {
 }
 
 impl Card {
+    /// Creates a new card from a lua file.
+    pub fn parse_from_file_content(
+        game: &Game,
+        file_content: String,
+        file_name: String,
+    ) -> LuaResult<Self> {
+        let lua_vm = &game.lua_vm;
+        lua_vm.prepare_for_resource(game)?;
+
+        let card = lua_vm.lua.load(file_content).set_name(file_name).eval()?;
+        Ok(card)
+    }
+
     // TODO: Replace with enchantments?
     pub fn set_name(&mut self, name: String) {
         self.name.clone_from(&name);
@@ -152,22 +170,7 @@ impl Card {
             .insert("location".into(), serde_json::to_value(location).unwrap());
     }
 
-    #[allow(
-        clippy::significant_drop_tightening,
-        reason = "Can't drop `game_lock` while `lua_vm` is in scope."
-    )]
-    pub fn parse_from_file_content(
-        game: &Game,
-        file_content: String,
-        file_name: String,
-    ) -> LuaResult<Self> {
-        let lua_vm = &game.lua_vm;
-        lua_vm.prepare_for_resource(game)?;
-
-        let card = lua_vm.lua.load(file_content).set_name(file_name).eval()?;
-        Ok(card)
-    }
-
+    /// Returns the name of the owner, if the card has an owner. This locks the owner mutex.
     pub fn get_owner_name(&self) -> Option<String> {
         let owner_clone = self.owner.clone()?;
         let owner_lock = owner_clone.lock().unwrap();
@@ -175,6 +178,9 @@ impl Card {
         Some(info_lock.username.clone())
     }
 
+    /// Removes the card from wherever it is.
+    ///
+    /// This tries removing the card from the owner's hand, deck, and board. This locks the owner mutex.
     pub fn remove_from_location(&self) {
         let Some(owner) = &self.owner else {
             return;

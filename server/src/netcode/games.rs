@@ -10,7 +10,12 @@ use ulid::Ulid;
 use crate::{
     Shared,
     game::{Game, SharedGame},
-    netcode::{anticheat, net::SharedPlayerInfo, packet::ResponsePacket, peer_map::PeerMap},
+    netcode::{
+        anticheat,
+        net::{SharedPlayerInfo, Tx},
+        packet::ResponsePacket,
+        peer_map::PeerMap,
+    },
 };
 
 type GameData = (SharedGame, SocketAddr, SocketAddr);
@@ -24,18 +29,28 @@ impl Games {
     pub fn add(
         &self,
         peer_map: &PeerMap,
-        peers: (
-            (SocketAddr, SharedPlayerInfo),
-            (SocketAddr, SharedPlayerInfo),
-        ),
+        player1_peer: SocketAddr,
+        player1_sink: Tx,
+        player1_info: SharedPlayerInfo,
+        player2_peer: SocketAddr,
+        player2_sink: Tx,
+        player2_info: SharedPlayerInfo,
     ) -> SharedGame {
         // TODO: Randomize who is player 1 and who is player 2.
-        let game = Game::new(peer_map.clone(), peers.0.0, peers.0.1, peers.1.0, peers.1.1);
+        let game = Game::new(
+            peer_map.clone(),
+            player1_peer,
+            player1_sink,
+            player1_info,
+            player2_peer,
+            player2_sink,
+            player2_info,
+        );
         let shared_game = Arc::new(Mutex::new(game));
         self.data
             .lock()
             .unwrap()
-            .push((shared_game.clone(), peers.0.0, peers.1.0));
+            .push((shared_game.clone(), player1_peer, player2_peer));
         shared_game
     }
 
@@ -148,13 +163,8 @@ impl Games {
                     .unwrap()
                     .username
             );
+
             // Repeat packet to both clients.
-            let player = game_lock.get_current_player();
-            let player_lock = player.lock().unwrap();
-
-            response.is_starting_player = !player_lock.is_starting_player;
-            drop(player_lock);
-
             game_lock.end_turn(&mut Some(&mut response));
             game_lock.send_packet(response);
             return;

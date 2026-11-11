@@ -254,7 +254,7 @@ impl ResponsePacket {
                 // There's only one card. Insert it as a single element, rather than an array.
                 response
                     .response_data
-                    .insert(key.clone(), json_cards.get(0).unwrap().clone());
+                    .insert(key.clone(), json_cards.first().unwrap().clone());
             }
         }
 
@@ -285,6 +285,40 @@ impl ResponsePacket {
         sink.unbounded_send(packet.deref().into())?;
         packet.personalized_chages.clear();
         Ok(())
+    }
+
+    pub fn send_to_player(
+        &mut self,
+        player: &SharedPlayer,
+    ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
+        let sink = player.lock().unwrap().sink.clone();
+        self.send_to(&sink, Some(player))
+    }
+
+    // TODO: Maybe think about not using Shared values in these methods?
+    // TODO: Remove this function maybe.
+    pub fn send_draw_cards_packet(&mut self, player: &SharedPlayer, cards: &CardCollection) {
+        // Send cards to clients.
+        let mut player_lock = player.lock().unwrap();
+        self.is_starting_player = player_lock.is_starting_player;
+        self.use_player_changes(&mut player_lock);
+        self.use_player_changes_shared(&player_lock.get_opponent());
+        let opponent = player_lock.get_opponent();
+        drop(player_lock);
+
+        // Friendly
+        let mut friendly_response = self.clone();
+        friendly_response.packet_type = "draw_cards".into();
+        friendly_response.add_cards("cards", cards.clone());
+        friendly_response.send_to_player(player).unwrap();
+
+        // Opponent
+        let mut opponent_response = self.clone();
+        opponent_response.packet_type = "opponent_draw_cards".into();
+        opponent_response
+            .response_data
+            .insert("amount".into(), cards.len().into());
+        opponent_response.send_to_player(&opponent).unwrap();
     }
 }
 impl From<ResponsePacket> for Message {

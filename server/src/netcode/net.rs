@@ -53,7 +53,15 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     let (info1, sink1) = &peers_lock.get(&peer1).unwrap();
     let (info2, sink2) = &peers_lock.get(&peer2).unwrap();
 
-    let game = games.add(peer_map, ((peer1, info1.clone()), (peer2, info2.clone())));
+    let game = games.add(
+        peer_map,
+        peer1,
+        sink1.clone(),
+        info1.clone(),
+        peer2,
+        sink2.clone(),
+        info2.clone(),
+    );
     log!(Level::Debug, "Games: {games:?}");
 
     // Set decks.
