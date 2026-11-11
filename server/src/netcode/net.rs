@@ -108,7 +108,9 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
         }
 
         // FIXME: Unwrap here will probably poison the peer map.
-        response.send_to(sink, player.as_ref()).unwrap();
+        response
+            .send_to_option_shared(sink, player.clone())
+            .unwrap();
 
         // Send `begin_game` packet.
         log!(Level::Debug, "Sending 'begin_game' packet");
@@ -119,7 +121,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
             HashMap::new(),
         );
         // FIXME: This will probably poison the peer map.
-        response.send_to(sink, player.as_ref()).unwrap();
+        response.send_to_option_shared(sink, player).unwrap();
     }
 
     drop(peers_lock);
@@ -163,14 +165,14 @@ fn handle_client_packet(
         response
             .response_data
             .insert("username".into(), info_lock.username.clone().into());
-        response.send_to(&peer_info.1, None).unwrap();
+        response.send_to_no_changes(&peer_info.1).unwrap();
         return;
     } else if response.packet_type == "enter_queue" {
         // TODO: Block player from entering queue if they haven't sent their player info.
         queue.add(peer);
 
         // Respond.
-        response.send_to(&peer_info.1, None).unwrap();
+        response.send_to_no_changes(&peer_info.1).unwrap();
 
         drop(peer_info);
         log!(Level::Debug, "Queue: {queue:?}");

@@ -115,7 +115,7 @@ impl Game {
 
         for (sink, player) in mappings {
             // TODO: Is unwrap safe here?
-            packet.send_to(sink, player.as_ref()).unwrap();
+            packet.send_to_option_shared(sink, player).unwrap();
         }
     }
 
@@ -128,13 +128,12 @@ impl Game {
         &self,
         peer: SocketAddr,
         packet: &mut ResponsePacket,
-        player: Option<&SharedPlayer>,
+        player: Option<&Player>,
     ) -> Option<()> {
         // TODO: Is unwrap safe here?
         let map_peers = self.peer_map.get().unwrap();
         let sink = &map_peers.iter().find(|(addr, _)| *addr == &peer)?.1.1;
-
-        packet.send_to(sink, player).unwrap();
+        packet.send_to_option(sink, player).unwrap();
         Some(())
     }
 
@@ -145,17 +144,16 @@ impl Game {
 
         let cards = player1.draw_cards(3);
         // NOTE: Draw cards requires the opposing player to be free.
-        drop(player1);
         if let Some(response) = response {
-            // TODO: This function should take the player lock.
-            response.send_draw_cards_packet(&self.player1, &cards);
+            response.send_draw_cards_packet(&mut player1, &cards);
         }
+        drop(player1);
 
         let mut player2 = self.player2.lock().unwrap();
         let cards = player2.draw_cards(4);
-        drop(player2);
+        // drop(player2);
         if let Some(response) = response {
-            response.send_draw_cards_packet(&self.player2, &cards);
+            response.send_draw_cards_packet(&mut player2, &cards);
         }
 
         // Create the coin.
@@ -164,19 +162,18 @@ impl Game {
         // TODO: The coin here might be linked.
         let pack = Pack::import(self, "../packs/@steelburn/epsilon").unwrap();
         let the_coin = pack.cards.get_with_id("The Coin").unwrap();
-        let mut player2 = self.player2.lock().unwrap();
+        // let mut player2 = self.player2.lock().unwrap();
         player2.add_to_hand(the_coin);
-        drop(player2);
         // TODO: This probably shouldn't be sent as a draw card packet?
         if let Some(response) = response {
             response.send_draw_cards_packet(
-                &self.player2,
+                &mut player2,
                 &CardCollection::from_vec(vec![the_coin.clone()]),
             );
         }
 
         let mut player1 = self.player1.lock().unwrap();
-        let mut player2 = self.player2.lock().unwrap();
+        // let mut player2 = self.player2.lock().unwrap();
 
         log!(
             Level::Debug,
@@ -208,10 +205,9 @@ impl Game {
         let new_mana = current_player_lock.empty_mana;
         current_player_lock.set_mana(new_mana);
         let cards = current_player_lock.draw_cards(1);
-        drop(current_player_lock);
 
         if let Some(response) = response {
-            response.send_draw_cards_packet(&current_player, &cards);
+            response.send_draw_cards_packet(&mut current_player_lock, &cards);
         }
 
         // let binding = self.get_opposing_player();
