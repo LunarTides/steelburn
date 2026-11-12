@@ -32,9 +32,12 @@ func update_ui():
 		modulate = Color.GREEN
 	else:
 		texture_normal = LOCK_KEYHOLE_OFF
-		modulate = Color.RED
+		modulate = Color.hex(0xa0a0a0ff) if Game.opponent.public_key.is_empty() else Color.RED
 
 
 func _on_pressed() -> void:
+	for child in get_children():
+		child.queue_free()
+	
 	var ui: Control = VERIFICATION_INFO_UI.instantiate()
 	add_child(ui)

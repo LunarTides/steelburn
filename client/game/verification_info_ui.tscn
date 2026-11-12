@@ -11,7 +11,7 @@ font_size = 48
 [sub_resource type="LabelSettings" id="LabelSettings_utped"]
 font_size = 24
 
-[node name="VerificationInfoUI" type="Control" unique_id=1154684574 node_paths=PackedStringArray("title_label", "public_key_label", "verified_label", "usernames_label", "usernames_container", "full_pk_label", "trust_button", "public_key_error_label", "usernames_error_label", "verified_error_label")]
+[node name="VerificationInfoUI" type="Control" unique_id=1154684574 node_paths=PackedStringArray("title_label", "public_key_label", "verified_label", "usernames_label", "usernames_container", "full_pk_label", "trust_button", "untrust_all_button", "public_key_error_label", "usernames_error_label", "verified_error_label")]
 top_level = true
 layout_mode = 3
 anchors_preset = 15
@@ -19,7 +19,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1_1b82b")
+ghost_color = Color(0.627451, 0.627451, 0.627451, 1)
 title_label = NodePath("PanelContainer/VBoxContainer/TitleLabel")
 public_key_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer/PublicKeyLabel")
 verified_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/VerifiedLabel")
@@ -27,6 +29,7 @@ usernames_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxConta
 usernames_container = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/UsernamesContainer")
 full_pk_label = NodePath("PanelContainer/VBoxContainer/FullPKLabel")
 trust_button = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer/TrustButton")
+untrust_all_button = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer/UntrustAllButton")
 public_key_error_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2/PublicKeyLabel")
 usernames_error_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2/UsernamesLabel")
 verified_error_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VerifiedLabel")
@@ -67,7 +70,7 @@ size_flags_horizontal = 3
 layout_mode = 2
 
 [node name="PublicKeyLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer" unique_id=131287971]
-modulate = Color(1, 0, 0, 1)
+modulate = Color(0.6255971, 0.6255971, 0.6255971, 1)
 layout_mode = 2
 size_flags_horizontal = 2
 size_flags_vertical = 0
