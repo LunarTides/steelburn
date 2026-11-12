@@ -101,9 +101,6 @@ impl Game {
     /// This locks both player mutexes.
     /// This locks all cards in the players' hand, deck, board, etc.
     pub fn send_packet(&self, mut packet: ResponsePacket) {
-        packet.use_player_changes_shared(&self.player1);
-        packet.use_player_changes_shared(&self.player2);
-
         let peers = [self.player1_peer, self.player2_peer];
 
         // TODO: Is unwrap safe here?
@@ -119,42 +116,17 @@ impl Game {
         }
     }
 
-    /// Sends a packet to a specified client.
-    ///
-    /// The `player` argument changes who the game thinks the packet is being sent to.
-    /// This is used to decide how much information the packet should include.
-    /// This should usually be set to the player belonging to the peer. Use `get_player_from_peer()` for this purpose.
-    pub fn send_packet_to(
-        &self,
-        peer: SocketAddr,
-        packet: &mut ResponsePacket,
-        player: Option<&Player>,
-    ) -> Option<()> {
-        // TODO: Is unwrap safe here?
-        let map_peers = self.peer_map.get().unwrap();
-        let sink = &map_peers.iter().find(|(addr, _)| *addr == &peer)?.1.1;
-        packet.send_to_option(sink, player).unwrap();
-        Some(())
-    }
-
     pub fn start_game(&self, response: &mut Option<&mut ResponsePacket>) {
         let mut player1 = self.player1.lock().unwrap();
         player1.set_empty_mana(1);
         player1.set_mana(1);
 
-        let cards = player1.draw_cards(3);
+        player1.draw_cards(3, response);
         // NOTE: Draw cards requires the opposing player to be free.
-        if let Some(response) = response {
-            response.send_draw_cards_packet(&mut player1, &cards);
-        }
         drop(player1);
 
         let mut player2 = self.player2.lock().unwrap();
-        let cards = player2.draw_cards(4);
-        // drop(player2);
-        if let Some(response) = response {
-            response.send_draw_cards_packet(&mut player2, &cards);
-        }
+        player2.draw_cards(4, response);
 
         // Create the coin.
         // TODO: Don't rely on epsilon.
@@ -162,7 +134,6 @@ impl Game {
         // TODO: The coin here might be linked.
         let pack = Pack::import(self, "../packs/@steelburn/epsilon").unwrap();
         let the_coin = pack.cards.get_with_id("The Coin").unwrap();
-        // let mut player2 = self.player2.lock().unwrap();
         player2.add_to_hand(the_coin);
         // TODO: This probably shouldn't be sent as a draw card packet?
         if let Some(response) = response {
@@ -204,11 +175,7 @@ impl Game {
         // TODO: Apply overload.
         let new_mana = current_player_lock.empty_mana;
         current_player_lock.set_mana(new_mana);
-        let cards = current_player_lock.draw_cards(1);
-
-        if let Some(response) = response {
-            response.send_draw_cards_packet(&mut current_player_lock, &cards);
-        }
+        current_player_lock.draw_cards(1, response);
 
         // let binding = self.get_opposing_player();
         // let mut opposing_player = binding.lock().unwrap();

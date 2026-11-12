@@ -112,7 +112,7 @@ impl ResponsePacket {
         }
     }
 
-    pub fn use_player_changes(&mut self, player: &mut Player) {
+    fn use_player_changes(&mut self, player: &mut Player) {
         if player.hand.is_dirty() {
             player
                 .changes
@@ -175,13 +175,7 @@ impl ResponsePacket {
         player.oblivion.clear();
     }
 
-    // TODO: Delete this function.
-    pub fn use_player_changes_shared(&mut self, player: &SharedPlayer) {
-        let mut player_lock = player.lock().unwrap();
-        self.use_player_changes(&mut player_lock);
-    }
-
-    pub fn use_card_changes_shared(&mut self, player: &Player, card: &SharedCard) {
+    fn use_card_changes_shared(&mut self, player: &Player, card: &SharedCard) {
         // TODO: Don't send sensitive changes to the opposing peer.
         let mut card_lock = card.lock().unwrap();
         if card_lock.changes.is_empty() {
@@ -210,9 +204,11 @@ impl ResponsePacket {
         card_lock.changes.clear();
     }
 
-    pub fn prepare_for_send(&self, player: &Player) -> Self {
-        let mut response = self.clone();
+    pub fn prepare_for_send(&mut self, player: &mut Player, opponent: &mut Player) {
         let is_player_1 = player.is_starting_player;
+
+        self.use_player_changes(player);
+        self.use_player_changes(opponent);
 
         for (key, cards) in &self.response_cards {
             let mut json_cards = Vec::new();
@@ -246,22 +242,18 @@ impl ResponsePacket {
 
             if json_cards.len() > 1 {
                 // There's more than one card. Insert it as an array.
-                response
-                    .response_data
-                    .insert(key.clone(), json_cards.into());
+                self.response_data.insert(key.clone(), json_cards.into());
             } else if !json_cards.is_empty() {
                 // There's only one card. Insert it as a single element, rather than an array.
-                response
-                    .response_data
+                self.response_data
                     .insert(key.clone(), json_cards.first().unwrap().clone());
             }
         }
 
-        response.censor(&player);
-        response
+        self.censor(player);
     }
 
-    pub fn censor(&mut self, player: &Player) {
+    fn censor(&mut self, player: &Player) {
         // TODO: Implement.
     }
 
@@ -269,21 +261,36 @@ impl ResponsePacket {
     /// This changes the packet according to what the player should know.
     pub fn send_to(
         &mut self,
-        sink: &Tx,
-        player: &Player,
+        player: &mut Player,
     ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
-        let packet = &mut self.prepare_for_send(player);
+        self.prepare_for_send(player, &mut player.get_opponent().lock().unwrap());
 
-        let changes = packet.get_player_changes(&player).clone();
-        packet.personalized_chages.clone_from(&changes);
+        // FIXME: Ok so its not sending the opponent's hand size now.
+        let changes = self.get_player_changes(&player).clone();
+        self.personalized_chages.clone_from(&changes);
 
-        sink.unbounded_send(packet.deref().into())?;
-        packet.personalized_chages.clear();
+        player.sink.unbounded_send(self.deref().into())?;
+        self.personalized_chages.clear();
+        Ok(())
+    }
+
+    pub fn send_to_with_opponent(
+        &mut self,
+        player: &mut Player,
+        opponent: &mut Player,
+    ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
+        self.prepare_for_send(player, opponent);
+
+        let changes = self.get_player_changes(&player).clone();
+        self.personalized_chages.clone_from(&changes);
+
+        player.sink.unbounded_send(self.deref().into())?;
+        self.personalized_chages.clear();
         Ok(())
     }
 
     /// Sends the packet directly to a sink. This doesn't modify the packet, so be careful.
-    pub fn send_to_no_changes(
+    pub fn send_to_sink(
         &mut self,
         sink: &Tx,
     ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
@@ -294,27 +301,17 @@ impl ResponsePacket {
 
     /// Sends the packet to a player.
     /// This changes the packet according to what the player should know.
-    pub fn send_to_player(
-        &mut self,
-        player: &Player,
-    ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
-        let sink = player.sink.clone();
-        self.send_to(&sink, player)
-    }
-
-    /// Sends the packet to a player.
-    /// This changes the packet according to what the player should know.
     ///
     /// Calls `send_to` if the player is a Some value, otherwise calls `send_to_no_changes`.
     pub fn send_to_option(
         &mut self,
         sink: &Tx,
-        player: Option<&Player>,
+        player: Option<&mut Player>,
     ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
         if let Some(player) = player {
-            self.send_to(sink, player)
+            self.send_to(player)
         } else {
-            self.send_to_no_changes(sink)
+            self.send_to_sink(sink)
         }
     }
 
@@ -328,24 +325,24 @@ impl ResponsePacket {
         player: Option<SharedPlayer>,
     ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
         if let Some(player) = player {
-            self.send_to(sink, &player.lock().unwrap())
+            self.send_to(&mut player.lock().unwrap())
         } else {
-            self.send_to_no_changes(sink)
+            self.send_to_sink(sink)
         }
     }
 
-    // TODO: Remove this function maybe.
+    // TODO: Remove this function.
     pub fn send_draw_cards_packet(&mut self, player: &mut Player, cards: &CardCollection) {
         // Send cards to clients.
         self.is_starting_player = player.is_starting_player;
-        self.use_player_changes(player);
-        self.use_player_changes_shared(&player.get_opponent());
+        // TODO: Is this smart? Does this properly send correct information for both peers?
+        self.prepare_for_send(player, &mut player.get_opponent().lock().unwrap());
 
         // Friendly
         let mut friendly_response = self.clone();
         friendly_response.packet_type = "draw_cards".into();
         friendly_response.add_cards("cards", cards.clone());
-        friendly_response.send_to_player(player).unwrap();
+        friendly_response.send_to(player).unwrap();
 
         // Opponent
         let mut opponent_response = self.clone();
@@ -354,7 +351,7 @@ impl ResponsePacket {
             .response_data
             .insert("amount".into(), cards.len().into());
         opponent_response
-            .send_to_player(&player.get_opponent().lock().unwrap())
+            .send_to_with_opponent(&mut player.get_opponent().lock().unwrap(), player)
             .unwrap();
     }
 }

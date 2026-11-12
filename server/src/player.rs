@@ -9,7 +9,10 @@ use crate::{
     card::{Card, Location, SharedCard, Type},
     card_collection::CardCollection,
     game::SharedGame,
-    netcode::net::{Poisoned, SharedPlayerInfo, Tx},
+    netcode::{
+        net::{Poisoned, SharedPlayerInfo, Tx},
+        packet::ResponsePacket,
+    },
 };
 
 pub type SharedPlayer = Shared<Player>;
@@ -131,8 +134,11 @@ impl Player {
         self.changes.insert("username".into(), username.into());
     }
 
-    /// Call `Game.send_draw_cards_packet` after calling this function.
-    pub fn draw_cards(&mut self, amount: u32) -> CardCollection {
+    pub fn draw_cards(
+        &mut self,
+        amount: u32,
+        response: &mut Option<&mut ResponsePacket>,
+    ) -> CardCollection {
         let mut cards = CardCollection::default();
 
         for _ in 0..amount {
@@ -149,6 +155,29 @@ impl Player {
                     cards.push(card);
                 }
             }
+        }
+
+        if let Some(response) = response {
+            // Send cards to clients.
+            response.is_starting_player = self.is_starting_player;
+            // TODO: Is this smart? Does this properly send correct information for both peers?
+            response.prepare_for_send(self, &mut self.get_opponent().lock().unwrap());
+
+            // Friendly
+            let mut friendly_response = response.clone();
+            friendly_response.packet_type = "draw_cards".into();
+            friendly_response.add_cards("cards", cards.clone());
+            friendly_response.send_to(self).unwrap();
+
+            // Opponent
+            let mut opponent_response = response.clone();
+            opponent_response.packet_type = "opponent_draw_cards".into();
+            opponent_response
+                .response_data
+                .insert("amount".into(), cards.len().into());
+            opponent_response
+                .send_to_with_opponent(&mut self.get_opponent().lock().unwrap(), self)
+                .unwrap();
         }
 
         cards

@@ -165,14 +165,14 @@ fn handle_client_packet(
         response
             .response_data
             .insert("username".into(), info_lock.username.clone().into());
-        response.send_to_no_changes(&peer_info.1).unwrap();
+        response.send_to_sink(&peer_info.1).unwrap();
         return;
     } else if response.packet_type == "enter_queue" {
         // TODO: Block player from entering queue if they haven't sent their player info.
         queue.add(peer);
 
         // Respond.
-        response.send_to_no_changes(&peer_info.1).unwrap();
+        response.send_to_sink(&peer_info.1).unwrap();
 
         drop(peer_info);
         log!(Level::Debug, "Queue: {queue:?}");
