@@ -162,6 +162,15 @@ impl Games {
             response.send_to(&mut opponent_lock).unwrap();
             return;
         }
+        if response.packet_type == "chat_message" {
+            // Repeat to both players.
+            let game_lock = game.lock().unwrap();
+            response.response_data.clone_from(&response.request_data);
+            response.is_starting_player = game_lock.player1_peer == peer;
+            game_lock.send_packet(response);
+            return;
+        }
+
         if response.packet_type == "end_turn" {
             let mut game_lock = game.lock().unwrap();
             log!(

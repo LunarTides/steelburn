@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://3h31kq1yarkq" path="res://game/game_ui.gd" id="1_0occc"]
 [ext_resource type="Texture2D" uid="uid://bd5bljqxel0ju" path="res://assets/icons/lock-keyhole-off.svg" id="2_qe77m"]
 [ext_resource type="Script" uid="uid://b08yxuqjrov0w" path="res://game/verification_button.gd" id="3_pyphj"]
+[ext_resource type="Script" uid="uid://dcmmvduygalla" path="res://game/chat.gd" id="4_xnou0"]
+[ext_resource type="PackedScene" uid="uid://baydnsnagxdrc" path="res://game/chat_message.tscn" id="5_sxc2a"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_0occc"]
 font_size = 32
@@ -20,7 +22,7 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_0occc")
 opponent_name = NodePath("HBoxContainer/OpponentName")
-player_name = NodePath("PlayerName")
+player_name = NodePath("VBoxContainer/PlayerName")
 opponent_mana = NodePath("OpponentMana")
 player_mana = NodePath("PlayerMana")
 
@@ -39,15 +41,57 @@ layout_mode = 2
 texture_normal = ExtResource("2_qe77m")
 script = ExtResource("3_pyphj")
 
-[node name="PlayerName" type="Label" parent="." unique_id=1776282609]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=952240308]
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_top = -23.0
-offset_right = 40.0
+offset_top = -40.0
+offset_right = 49.0
 grow_vertical = 0
+
+[node name="PlayerName" type="Label" parent="VBoxContainer" unique_id=1776282609]
+layout_mode = 2
 text = "Player"
+
+[node name="Chat" type="PanelContainer" parent="VBoxContainer" unique_id=1938525498 node_paths=PackedStringArray("message", "chat_messages_container")]
+custom_minimum_size = Vector2(400, 200)
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("4_xnou0")
+message = NodePath("VBoxContainer/HBoxContainer/Message")
+chat_messages_container = NodePath("VBoxContainer/ScrollContainer/ChatMessagesContainer")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/Chat" unique_id=950080465]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/Chat/VBoxContainer" unique_id=1703162827]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ChatMessagesContainer" type="VBoxContainer" parent="VBoxContainer/Chat/VBoxContainer/ScrollContainer" unique_id=2132294101]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChatMessage" parent="VBoxContainer/Chat/VBoxContainer/ScrollContainer/ChatMessagesContainer" unique_id=956674204 instance=ExtResource("5_sxc2a")]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/Chat/VBoxContainer" unique_id=978640300]
+layout_mode = 2
+size_flags_vertical = 8
+
+[node name="Message" type="LineEdit" parent="VBoxContainer/Chat/VBoxContainer/HBoxContainer" unique_id=1802523387]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+placeholder_text = "Chat..."
+keep_editing_on_text_submit = true
+
+[node name="SendButton" type="Button" parent="VBoxContainer/Chat/VBoxContainer/HBoxContainer" unique_id=1131747449]
+layout_mode = 2
+text = "Send"
 
 [node name="OpponentMana" type="Label" parent="." unique_id=674677996]
 layout_mode = 1
@@ -75,3 +119,5 @@ text = "Player Mana"
 label_settings = SubResource("LabelSettings_0occc")
 
 [connection signal="pressed" from="HBoxContainer/VerificationButton" to="HBoxContainer/VerificationButton" method="_on_pressed"]
+[connection signal="text_submitted" from="VBoxContainer/Chat/VBoxContainer/HBoxContainer/Message" to="VBoxContainer/Chat" method="_on_message_text_submitted"]
+[connection signal="pressed" from="VBoxContainer/Chat/VBoxContainer/HBoxContainer/SendButton" to="VBoxContainer/Chat" method="_on_send_button_pressed"]

@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://baydnsnagxdrc"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_nbr8c"]
+outline_size = 2
+outline_color = Color(0.47051722, 1.347661e-06, 0.28933376, 1)
+
+[node name="ChatMessage" type="HBoxContainer" unique_id=956674204]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="Username" type="Label" parent="." unique_id=303792586]
+layout_mode = 2
+size_flags_vertical = 0
+text = "Username"
+label_settings = SubResource("LabelSettings_nbr8c")
+
+[node name="Message" type="Label" parent="." unique_id=1480265053]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "hello!"
+autowrap_mode = 3
