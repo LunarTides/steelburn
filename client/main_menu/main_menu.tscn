@@ -173,4 +173,41 @@ text = "Connect"
 layout_mode = 2
 text = "Direct Connect..."
 
+[node name="SettingsPanel" type="TabContainer" parent="." unique_id=239163623]
+custom_minimum_size = Vector2(0, 290)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -290.0
+grow_horizontal = 2
+grow_vertical = 0
+current_tab = 0
+
+[node name="Gameplay" type="Control" parent="SettingsPanel" unique_id=819405857]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="Video" type="Control" parent="SettingsPanel" unique_id=1098376131]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="Audio" type="Control" parent="SettingsPanel" unique_id=1096960953]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="Identities" type="Control" parent="SettingsPanel" unique_id=695031359]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="Label" type="Label" parent="SettingsPanel/Identities" unique_id=211903278]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+text = "TODO"
+
 [connection signal="pressed" from="ServersPanel/VBoxContainer/ServerListButtons/ConnectButton" to="ServersPanel/VBoxContainer/ServerList" method="_on_connect_button_pressed"]

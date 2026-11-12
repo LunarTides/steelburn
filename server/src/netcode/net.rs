@@ -31,6 +31,7 @@ pub type Poisoned<'a, T> = PoisonError<MutexGuard<'a, T>>;
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct PlayerInfo {
     pub username: String,
+    pub public_key: String,
     // Don't send the deckcode to the clients.
     #[serde(skip_serializing)]
     pub deckcode: String,
@@ -150,6 +151,14 @@ fn handle_client_packet(
         if let Some(username) = response.request_data.get("username") {
             info_lock.username = username.as_str().unwrap().into();
             log!(Level::Debug, "Renamed {peer} to: {}", info_lock.username);
+        }
+        if let Some(public_key) = response.request_data.get("public_key") {
+            info_lock.public_key = public_key.as_str().unwrap().into();
+            log!(
+                Level::Debug,
+                "Set pub key of {peer} to: {}",
+                info_lock.public_key
+            );
         }
         if let Some(deckcode) = response.request_data.get("deckcode") {
             info_lock.deckcode = deckcode.as_str().unwrap().into();

@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://pd5dv7ndga7s"]
 
 [ext_resource type="Script" uid="uid://3h31kq1yarkq" path="res://game/game_ui.gd" id="1_0occc"]
+[ext_resource type="Texture2D" uid="uid://bd5bljqxel0ju" path="res://assets/icons/lock-keyhole-off.svg" id="2_qe77m"]
+[ext_resource type="Script" uid="uid://b08yxuqjrov0w" path="res://game/verification_button.gd" id="3_pyphj"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_0occc"]
 font_size = 32
@@ -17,16 +19,25 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_0occc")
-opponent_name = NodePath("OpponentName")
+opponent_name = NodePath("HBoxContainer/OpponentName")
 player_name = NodePath("PlayerName")
 opponent_mana = NodePath("OpponentMana")
 player_mana = NodePath("PlayerMana")
 
-[node name="OpponentName" type="Label" parent="." unique_id=1460679096]
-layout_mode = 0
-offset_right = 40.0
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1684514405]
+layout_mode = 1
+offset_right = 79.0
 offset_bottom = 23.0
+
+[node name="OpponentName" type="Label" parent="HBoxContainer" unique_id=1460679096]
+layout_mode = 2
 text = "Opponent"
+
+[node name="VerificationButton" type="TextureButton" parent="HBoxContainer" unique_id=1902610316]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+texture_normal = ExtResource("2_qe77m")
+script = ExtResource("3_pyphj")
 
 [node name="PlayerName" type="Label" parent="." unique_id=1776282609]
 layout_mode = 1
@@ -62,3 +73,5 @@ grow_horizontal = 0
 grow_vertical = 0
 text = "Player Mana"
 label_settings = SubResource("LabelSettings_0occc")
+
+[connection signal="pressed" from="HBoxContainer/VerificationButton" to="HBoxContainer/VerificationButton" method="_on_pressed"]

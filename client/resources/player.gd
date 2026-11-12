@@ -32,6 +32,10 @@ signal board_changed
 	set(value):
 		board_size = value
 		emit_changed()
+@export var public_key: String:
+	set(value):
+		public_key = value
+		emit_changed()
 
 # NOTE: Elements are either Card or null.
 var hand: Array[Variant]

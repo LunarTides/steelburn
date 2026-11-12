@@ -1,0 +1,171 @@
+[gd_scene format=3 uid="uid://44y1vtwtxmhy"]
+
+[ext_resource type="Script" uid="uid://tan1bych735l" path="res://game/verification_info_ui.gd" id="1_1b82b"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1b82b"]
+bg_color = Color(0.14767182, 0.14767182, 0.14767176, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_nbr8c"]
+font_size = 48
+
+[sub_resource type="LabelSettings" id="LabelSettings_utped"]
+font_size = 24
+
+[node name="VerificationInfoUI" type="Control" unique_id=1154684574 node_paths=PackedStringArray("title_label", "public_key_label", "verified_label", "usernames_label", "usernames_container", "full_pk_label", "trust_button", "public_key_error_label", "usernames_error_label", "verified_error_label")]
+top_level = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_1b82b")
+title_label = NodePath("PanelContainer/VBoxContainer/TitleLabel")
+public_key_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer/PublicKeyLabel")
+verified_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/VerifiedLabel")
+usernames_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/UsernamesContainer/UsernamesLabel")
+usernames_container = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/UsernamesContainer")
+full_pk_label = NodePath("PanelContainer/VBoxContainer/FullPKLabel")
+trust_button = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer/TrustButton")
+public_key_error_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2/PublicKeyLabel")
+usernames_error_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2/UsernamesLabel")
+verified_error_label = NodePath("PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VerifiedLabel")
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=470203518]
+custom_minimum_size = Vector2(1200, 700)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1b82b")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer" unique_id=1823550971]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="PanelContainer/VBoxContainer" unique_id=1578928082]
+layout_mode = 2
+text = "Verification Info"
+label_settings = SubResource("LabelSettings_nbr8c")
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer" unique_id=196037104]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer" unique_id=970133188]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PublicKeyContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1532218812]
+layout_mode = 2
+
+[node name="PublicKeyLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer" unique_id=131287971]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+size_flags_horizontal = 2
+size_flags_vertical = 0
+text = "Public Key: FNhCbskCAwEAAQ=="
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="TrustButton" type="Button" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer" unique_id=1276065450]
+layout_mode = 2
+size_flags_horizontal = 0
+text = "TRUST"
+alignment = 0
+
+[node name="UntrustAllButton" type="Button" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer" unique_id=373489202]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+size_flags_horizontal = 2
+text = "UNTRUST ALL"
+alignment = 0
+
+[node name="UsernamesContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=816511830]
+layout_mode = 2
+
+[node name="UsernamesLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/UsernamesContainer" unique_id=1586041922]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+text = "Username(s):"
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="Username1" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/UsernamesContainer" unique_id=886096566]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+text = "ddd,"
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="Username2" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/UsernamesContainer" unique_id=1746502724]
+modulate = Color(0, 1, 0, 1)
+layout_mode = 2
+text = "fff"
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="VerifiedLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=601251337]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+text = "Verified: No"
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer" unique_id=600730364]
+layout_mode = 2
+size_flags_horizontal = 10
+
+[node name="PublicKeyLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2" unique_id=70798644]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+text = "The opponent's public key is not trusted."
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="UsernamesLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2" unique_id=1378481736]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+text = "Current username isn't trusted."
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="VerifiedLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer2" unique_id=1843066969]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 2
+text = "The opponent has not proven their ownership of the key."
+label_settings = SubResource("LabelSettings_utped")
+
+[node name="FullPKLabel" type="Label" parent="PanelContainer/VBoxContainer" unique_id=1172402126]
+custom_minimum_size = Vector2(1200, 0)
+layout_mode = 2
+size_flags_vertical = 3
+text = "-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA435ODBd1GkitQrsl6Zf2
+WgB0U/buuAvWq9SstEpu/jQmxc6/Wmjd3oSif/mMslzcNCPyIumE/JXSAnA0Fq+v
+TUh2oQ3X0dPrOe2QqS2Y3T/tTXek9DthTLTmpq9zU6B7RsPttsTxLK78RuIoQqom
+eQSvIs6SwnlhsFgddHVsuhV+eE/Be665XvpPZT6zZf3bh/nXqyUPy/G2IN5eyvLD
+3zxG6yJmccXw5k1RdOxiVDO5JEnebBjWwjFD+KhJWoahuTCyKRF1IHjiGEkbv++R
+yGk2BOjX97kDzUfR48pRNL7qJ3mszZILWyjJKOm0meP28bp8pqVuxBPEn8eCK1+X
+E9jRKNo82kixR1bQGOfEVdP6z69QKut04wMe3OF9zcrxxUHnOjQShWZUX5Rl6HL1
+SNWQQKm6opBZMtG9c0vw6xgqIBB64r8/iQA6XxLv6w+5sLQQirbjBV2JYrJM/Qmg
+60J2wX7wqqPnIdUvSqnAb5EIUJ74exUm2RicOOjldJzMzPWQiH3QqbfQXSBqtOSg
+xj1eTm93ws0elktalzp9k1hbFBGe5qq8E/5kknUuoMFNB3L85x1wDXVI6+6UXMOc
+MO+DxJVVyittKWRzMg9HaRY9OcHPLr2KZvfMZvBC+dYhTx+StJS3dGQOdY+vlBnP
+vOjig1RK5UBhFzH3FNhCbskCAwEAAQ==
+-----END PUBLIC KEY-----"
+label_settings = SubResource("LabelSettings_utped")
+autowrap_mode = 1
+
+[node name="CloseButton" type="Button" parent="PanelContainer" unique_id=113421860]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_override_font_sizes/font_size = 32
+text = "x"
+flat = true
+
+[connection signal="pressed" from="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer/TrustButton" to="." method="_on_trust_button_pressed"]
+[connection signal="pressed" from="PanelContainer/VBoxContainer/HBoxContainer/VBoxContainer/PublicKeyContainer/UntrustAllButton" to="." method="_on_untrust_all_button_pressed"]
+[connection signal="pressed" from="PanelContainer/CloseButton" to="." method="_on_close_button_pressed"]

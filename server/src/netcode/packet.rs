@@ -97,6 +97,7 @@ impl ResponsePacket {
     }
 
     pub const fn get_player_changes(&mut self, player: &Player) -> &mut ResponseChanges {
+        // TODO: Make this more nuanced.
         if player.is_starting_player {
             &mut self.changes.0
         } else {
@@ -105,6 +106,7 @@ impl ResponsePacket {
     }
 
     pub const fn get_opponent_changes(&mut self, player: &Player) -> &mut ResponseChanges {
+        // TODO: Make this more nuanced.
         if player.is_starting_player {
             &mut self.changes.1
         } else {

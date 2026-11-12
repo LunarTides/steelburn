@@ -42,7 +42,8 @@ func _on_connect_button_pressed() -> void:
 			"type": "player_info",
 			"data": {
 				"deckcode": "debug",
-				#"username": "en",
+				"public_key": Net.rsa.current_identity.public_key,
+				"username": "en",
 			},
 		})
 		Socket.send_packet(packet)

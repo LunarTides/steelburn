@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 Socket="*uid://woi1n5v7b7kp"
 Game="*uid://rj1ey3rppgfc"
+Net="*uid://bsvosy4ae6qvm"
 
 [debug]
 

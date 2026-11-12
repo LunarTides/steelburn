@@ -148,6 +148,20 @@ impl Games {
             return;
         }
 
+        if response.packet_type == "verify_identity" {
+            // Redirect to the opponent.
+            let game_lock = game.lock().unwrap();
+            let player = game_lock.get_player_from_peer(peer).unwrap();
+            let player_lock = player.lock().unwrap();
+
+            let opponent = player_lock.get_opponent();
+            drop(player_lock);
+            let mut opponent_lock = opponent.lock().unwrap();
+
+            response.response_data.clone_from(&response.request_data);
+            response.send_to(&mut opponent_lock).unwrap();
+            return;
+        }
         if response.packet_type == "end_turn" {
             let mut game_lock = game.lock().unwrap();
             log!(
