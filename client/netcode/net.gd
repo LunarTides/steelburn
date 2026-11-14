@@ -54,7 +54,7 @@ func send_identity_verification():
 			"signature": Marshalls.raw_to_base64(signature),
 		},
 	})
-	Socket.send_packet(packet)
+	packet.send()
 
 
 func verify_opponent_identity():

@@ -48,3 +48,7 @@ func set_properties(object: Object, copy_from = data):
 	for key in copy_from.keys():
 		var value = copy_from[key]
 		object.set(key, value)
+
+
+func send(randomize_id: bool = true):
+	Socket.send_packet(self, randomize_id)

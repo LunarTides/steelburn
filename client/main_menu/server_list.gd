@@ -46,5 +46,5 @@ func _on_connect_button_pressed() -> void:
 				"username": "en",
 			},
 		})
-		Socket.send_packet(packet)
+		packet.send()
 	, CONNECT_ONE_SHOT)

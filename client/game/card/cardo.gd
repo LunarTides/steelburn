@@ -156,7 +156,7 @@ func request_play():
 			"hash": card.hash,
 		},
 	})
-	Socket.send_packet(packet)
+	packet.send()
 
 
 func _on_mouse_entered() -> void:

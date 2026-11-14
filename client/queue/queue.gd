@@ -7,7 +7,7 @@ func _ready() -> void:
 		"type": "enter_queue",
 		"data": {},
 	})
-	Socket.send_packet(enter_queue_packet)
+	enter_queue_packet.send()
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.

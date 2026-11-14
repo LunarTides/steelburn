@@ -53,7 +53,7 @@ func end_turn():
 		"type": "end_turn",
 		"data": {},
 	})
-	Socket.send_packet(packet)
+	packet.send()
 	turn_ending.emit()
 
 

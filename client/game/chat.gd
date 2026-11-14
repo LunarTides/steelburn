@@ -27,7 +27,7 @@ func _on_send_button_pressed() -> void:
 			"text": message.text,
 		},
 	})
-	Socket.send_packet(packet)
+	packet.send()
 	
 	message.clear()
 	message.edit()
