@@ -1,7 +1,7 @@
 use mlua::prelude::*;
 use mlua::{Lua, Result};
 
-use crate::card::SharedCard;
+use crate::card::{Card, SharedCard};
 use crate::game::Game;
 use crate::player::SharedPlayer;
 
@@ -20,6 +20,8 @@ impl LuaVM {
 
     pub fn prepare_for_card(&self, card: LuaCard, owner: LuaPlayer) -> Result<()> {
         let globals = self.lua.globals();
+        // FIXME: For some ungodly reason, this doesn't work.
+        // globals.set("card", card)?;
         globals.set("self", card)?;
         globals.set("owner", owner)?;
 
@@ -28,6 +30,9 @@ impl LuaVM {
 
     pub fn prepare_for_resource(&self, game: &Game) -> Result<()> {
         let globals = self.lua.globals();
+
+        let card = LuaCard::from(SharedCard::from(Card::default()));
+        globals.set("card", card)?;
 
         // TODO: Implement
         // let player1_lock = game_lock.player1.lock().unwrap();
@@ -110,6 +115,14 @@ impl LuaUserData for LuaCard {
         fields.add_field_method_get("text", |_, this| Ok(this.card.lock().unwrap().text.clone()));
         fields.add_field_method_set("text", |_, this, val| {
             this.card.lock().unwrap().set_text(val);
+            Ok(())
+        });
+
+        fields.add_field_method_get("type", |_, this| {
+            Ok(this.card.lock().unwrap().card_type.clone())
+        });
+        fields.add_field_method_set("type", |_, this, val| {
+            this.card.lock().unwrap().set_type(val);
             Ok(())
         });
 

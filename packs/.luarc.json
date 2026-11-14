@@ -1,0 +1,4 @@
+{
+  "workspace.library": ["./steelburn.d.lua"],
+  "diagnostics.disable": ["duplicate-set-field"]
+}

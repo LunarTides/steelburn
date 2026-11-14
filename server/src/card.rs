@@ -43,6 +43,14 @@ impl FromLua for Type {
         // Ok(serde_json::from_str::<Self>(&card_type.to_string_lossy()).unwrap())
     }
 }
+impl IntoLua for Type {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
+        match self {
+            Self::Minion => Ok(LuaValue::String(lua.create_string("minion").unwrap())),
+            Self::Spell => Ok(LuaValue::String(lua.create_string("spell").unwrap())),
+        }
+    }
+}
 
 pub type SharedCard = Shared<Card>;
 
@@ -115,7 +123,7 @@ impl Clone for Card {
 
 impl FromLua for Card {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
-        let c = value.as_table().unwrap();
+        let c = value.as_userdata().unwrap();
 
         let name = c.get::<String>("name").unwrap();
         let card_type = c.get::<Type>("type").unwrap();
@@ -147,7 +155,8 @@ impl Card {
         let lua_vm = &game.lua_vm;
         lua_vm.prepare_for_resource(game)?;
 
-        let card = lua_vm.lua.load(file_content).set_name(file_name).eval()?;
+        lua_vm.lua.load(file_content).set_name(file_name).exec()?;
+        let card = lua_vm.lua.globals().get("card").unwrap();
         Ok(card)
     }
 
@@ -163,6 +172,11 @@ impl Card {
     pub fn set_text(&mut self, text: String) {
         self.text.clone_from(&text);
         self.changes.insert("text".into(), text.into());
+    }
+    pub fn set_type(&mut self, card_type: Type) {
+        self.card_type.clone_from(&card_type);
+        self.changes
+            .insert("type".into(), serde_json::to_value(card_type).unwrap());
     }
     pub fn set_location(&mut self, location: Location) {
         self.location = location.clone();
