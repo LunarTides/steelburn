@@ -6,8 +6,9 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_nbr8c"]
 size = Vector3(2.2189941, 0.98339844, 1)
 
-[node name="EndTurnButton" type="Area3D" unique_id=1184278779]
+[node name="EndTurnButton" type="Area3D" unique_id=1184278779 node_paths=PackedStringArray("model")]
 script = ExtResource("1_8ot47")
+model = NodePath("Model")
 
 [node name="Model" parent="." unique_id=466634293 instance=ExtResource("1_r6qwo")]
 

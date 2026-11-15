@@ -2,10 +2,13 @@ extends Area3D
 
 signal clicked
 
+@export var model: Node3D
+
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	Game.turn_ended.connect(flip)
+	Socket.packed_recieved.connect(_on_packet_recieved)
 	
 	if not Game.our_turn:
 		flip(true)
@@ -43,7 +46,35 @@ func _on_input_event(camera: Node, event: InputEvent, event_position: Vector3, n
 func _on_mouse_entered() -> void:
 	if Game.our_turn:
 		scale *= 1.1
+	
+	var packet := Packet.from({
+		"type": "set_intention",
+		"data": {
+			"type": "hover_end_turn",
+		},
+	})
+	packet.send()
 
 
 func _on_mouse_exited() -> void:
 	scale = Vector3.ONE
+	
+	var packet := Packet.from({
+		"type": "clear_intentions",
+		"data": {},
+	})
+	packet.send()
+
+
+func _on_packet_recieved(packet: ResponsePacket):
+	var border: MeshInstance3D = model.get_node("Border")
+	
+	if packet.type == "set_intention":
+		if packet.data.type != "hover_end_turn":
+			return
+		
+		var material = StandardMaterial3D.new()
+		material.albedo_color = Color.hex(0xffff00ff)
+		border.set_surface_override_material(0, material)
+	elif packet.type == "clear_intentions":
+		border.set_surface_override_material(0, null)

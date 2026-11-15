@@ -42,8 +42,16 @@ var hovering: bool = false:
 				position += vector
 			else:
 				position -= vector
+		
+		send_hover_intention()
 var hovering_over_board: bool = false
-var dragging: bool = false
+var dragging: bool = false:
+	set(value):
+		if dragging == value:
+			return
+		
+		dragging = value
+		send_drag_intention()
 
 
 # Called when the node enters the scene tree for the first time.
@@ -126,8 +134,13 @@ func update_model():
 		health_label.position += health_vector
 		
 		# TODO: Maybe don't do this?
-		# TODO: Handling hovering over a card on the board.
-		collision_shape.disabled = true
+		collision_shape.shape = collision_shape.shape.duplicate()
+		collision_shape.shape.size.z = 2.881
+		collision_shape.position.z = -1.06
+	else:
+		collision_shape.shape = collision_shape.shape.duplicate()
+		collision_shape.shape.size.z = 6.685
+		collision_shape.position.z = 0.84
 
 
 func update_ui():
@@ -188,3 +201,64 @@ func _on_packet_recieved(packet: ResponsePacket) -> void:
 			return
 		
 		queue_free()
+	elif packet.type == "set_intention":
+		if packet.data.type != "hover_board":
+			return
+			
+		var hash = packet.data.hash
+		if hash != card.hash:
+			return
+		
+		var material = StandardMaterial3D.new()
+		material.albedo_color = Color.hex(0xffff00ff)
+		model.get_node("Frame").set_surface_override_material(0, material)
+	elif packet.type == "clear_intentions":
+		model.get_node("Frame").set_surface_override_material(0, null)
+
+
+func send_hover_intention():
+	if not hovering:
+		var packet := Packet.from({
+			"type": "clear_intentions",
+			"data": {}
+		})
+		packet.send()
+		return
+	
+	if card.location == "Hand":
+		var packet := Packet.from({
+			"type": "set_intention",
+			"data": {
+				"type": "hover_hand",
+				"hand_index": player.hand.find_custom(func(c: Card) -> bool: return c.hash == card.hash),
+			},
+		})
+		packet.send()
+	elif card.location == "Board":
+		var packet := Packet.from({
+			"type": "set_intention",
+			"data": {
+				"type": "hover_board",
+				"hash": card.hash,
+			},
+		})
+		packet.send()
+
+
+func send_drag_intention():
+	if not dragging:
+		var packet := Packet.from({
+			"type": "clear_intentions",
+			"data": {},
+		})
+		packet.send()
+		return
+	
+	var packet := Packet.from({
+		"type": "set_intention",
+		"data": {
+			"type": "drag_hand",
+			"hand_index": player.hand.find_custom(func(c: Card) -> bool: return c.hash == card.hash),
+		},
+	})
+	packet.send()

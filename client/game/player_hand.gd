@@ -19,6 +19,8 @@ func _ready() -> void:
 	for child in get_children():
 		child.queue_free()
 	
+	Socket.packed_recieved.connect(_packet_recieved)
+	
 	player.changed.connect(update)
 	player.hand_changed.connect(update)
 	update()
@@ -45,7 +47,6 @@ func update():
 		for i in range(amount):
 			# Create CardoPlaceholder.
 			var cardo_placeholder = CARDO_PLACEHOLDER.instantiate()
-			cardo_placeholder.rotation_degrees.y = 180
 			add_child(cardo_placeholder)
 		layout()
 		return
@@ -82,4 +83,52 @@ func layout():
 	
 	for child: Node3D in children:
 		child.position = Vector3((i - children.size() / 2) * spacing, 0, 0)
+		child.rotation = Vector3.ZERO
 		i += 1
+
+
+func _packet_recieved(packet: ResponsePacket):
+	if not is_opponent:
+		return
+	
+	# Show card outline when the opponent hovers over it.
+	if packet.type == "set_intention":
+		var intention_type = packet.data.type
+		if intention_type == "hover_hand":
+			var index = packet.data.hand_index
+			handle_hover_hand_intention(index)
+		elif intention_type == "drag_hand":
+			var index = packet.data.hand_index
+			handle_drag_hand_intention(index)
+	elif packet.type == "clear_intentions":
+		for cardo_placeholder: Area3D in get_children():
+			cardo_placeholder.get_node("Outline").hide()
+		layout()
+
+
+func handle_hover_hand_intention(index: int):
+	var child_count := get_child_count()
+	
+	if child_count <= index:
+		return
+	
+	# NOTE: The cards are in reversed order.
+	var cardo_placeholder: Area3D = get_child(index)
+	cardo_placeholder.get_node("Outline").show()
+
+
+func handle_drag_hand_intention(index: int):
+	var child_count := get_child_count()
+	
+	if child_count <= index:
+		return
+	
+	# NOTE: The cards are in reversed order.
+	var cardo_placeholder: Area3D = get_child(index)
+	var window_size := get_window().size / 2
+	print(window_size)
+	print(cardo_placeholder.global_position)
+	
+	cardo_placeholder.global_position += Vector3(0, 0.25, 5.5)
+	cardo_placeholder.global_position.x = 0
+	cardo_placeholder.rotate_y(deg_to_rad(30))

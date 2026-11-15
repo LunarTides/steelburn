@@ -148,7 +148,10 @@ impl Games {
             return;
         }
 
-        if response.packet_type == "verify_identity" {
+        if response.packet_type == "verify_identity"
+            || response.packet_type == "set_intention"
+            || response.packet_type == "clear_intentions"
+        {
             // Redirect to the opponent.
             let game_lock = game.lock().unwrap();
             let player = game_lock.get_player_from_peer(peer).unwrap();

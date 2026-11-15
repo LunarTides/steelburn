@@ -68,7 +68,7 @@ script = ExtResource("1_vasa2")
 [node name="Cardo" parent="Hand/PlayerHand" unique_id=1321672934 instance=ExtResource("1_l1rk1")]
 
 [node name="OpponentHand" type="Node3D" parent="Hand" unique_id=1630918556]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, -18)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18)
 script = ExtResource("1_vasa2")
 is_opponent = true
 
