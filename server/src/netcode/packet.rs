@@ -41,6 +41,15 @@ impl From<&Packet> for Message {
         Self::Text(serde_json::to_string(&val).unwrap().into())
     }
 }
+impl From<ResponsePacket> for Packet {
+    fn from(value: ResponsePacket) -> Self {
+        Self {
+            data: value.request_data,
+            id: value.id.unwrap_or("".into()),
+            packet_type: value.packet_type,
+        }
+    }
+}
 
 type ResponseChanges = HashMap<String, HashMap<String, Value>>;
 

@@ -13,7 +13,7 @@ use crate::{
     netcode::{
         anticheat,
         net::{SharedPlayerInfo, Tx},
-        packet::ResponsePacket,
+        packet::{Packet, ResponsePacket},
         peer_map::PeerMap,
     },
 };
@@ -159,10 +159,11 @@ impl Games {
 
             let opponent = player_lock.get_opponent();
             drop(player_lock);
-            let mut opponent_lock = opponent.lock().unwrap();
+            let opponent_lock = opponent.lock().unwrap();
 
-            response.response_data.clone_from(&response.request_data);
-            response.send_to(&mut opponent_lock).unwrap();
+            // Turn into a regular packet so we don't include unneccessary information.
+            let packet: Packet = response.into();
+            opponent_lock.sink.unbounded_send(packet.into()).unwrap();
             return;
         }
         if response.packet_type == "chat_message" {

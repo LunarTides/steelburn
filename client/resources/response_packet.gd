@@ -33,12 +33,16 @@ static func from(dict: Dictionary) -> ResponsePacket:
 	var new_id = dict.get("id")
 	if new_id:
 		packet.id = new_id
-	packet.is_starting_player = dict.get("is_starting_player")
+	var new_is_starting_player = dict.get("is_starting_player")
+	if new_is_starting_player:
+		packet.is_starting_player = new_is_starting_player
 	packet.data = dict.get("data")
 	var err = dict.get("error")
 	if err:
 		packet.error = err
-	packet.changes = dict.get("changes")
+	var new_changes = dict.get("changes")
+	if new_changes:
+		packet.changes = new_changes
 	return packet
 
 

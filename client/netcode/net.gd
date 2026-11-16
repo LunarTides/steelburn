@@ -20,10 +20,10 @@ func _ready() -> void:
 	rsa = RSA.load_identities()
 	
 	# TODO: Remove
+	if rsa.user_identities.size() <= 0:
+		var identity := RSAIdentity.create_own("en")
+		rsa.add_identity(identity)
 	rsa.trusted_identites = rsa.user_identities
-	#if rsa.user_identities.size() <= 0:
-		#var identity := RSAIdentity.create_own("en")
-		#rsa.add_identity(identity)
 	
 	Game.started.connect(func():
 		send_identity_verification()

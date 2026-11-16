@@ -79,7 +79,7 @@ func trusts_pub_key(public_key: String) -> bool:
 
 static func load_identities() -> RSA:
 	if not FileAccess.file_exists("user://rsa.tres"):
-		return
+		return RSA.new()
 	
 	return load("user://rsa.tres")
 
