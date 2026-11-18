@@ -193,7 +193,6 @@ impl ResponsePacket {
             return;
         }
 
-        // FIXME: For some reason, opponent's cards include changes when they're played.
         if (!card_lock.has_sent_to_player1 && player.is_starting_player)
             || (!card_lock.has_sent_to_player2 && !player.is_starting_player)
         {

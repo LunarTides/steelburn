@@ -52,6 +52,7 @@ var dragging: bool = false:
 		
 		dragging = value
 		send_drag_intention()
+var location: String
 
 
 # Called when the node enters the scene tree for the first time.
@@ -59,11 +60,14 @@ func _ready() -> void:
 	if not card:
 		return
 	
+	location = card.location
+	
 	update_model()
 	card.changed.connect(update_model)
 	
 	update_ui()
 	card.changed.connect(update_ui)
+	card.changed.connect(update_self)
 	
 	Socket.packed_recieved.connect(_on_packet_recieved)
 
@@ -162,6 +166,15 @@ func update_ui():
 	#attack_label.text = card.tribe
 
 
+func update_self():
+	if card.location != location:
+		# The card's location has changed. A new Cardo has been made somewhere, so delete this one.
+		queue_free()
+		return
+	
+	location = card.location
+
+
 func request_play():
 	var packet = Packet.from({
 		"type": "play_card",
@@ -193,15 +206,7 @@ func _on_area_exited(area: Area3D) -> void:
 
 
 func _on_packet_recieved(packet: ResponsePacket) -> void:
-	if packet.type == "play_card":
-		# TODO: Make this cleaner somehow.
-		if typeof(packet.data.card) == TYPE_STRING and packet.data.card != card.hash:
-			return
-		elif typeof(packet.data.card) == TYPE_DICTIONARY and packet.data.card.hash != card.hash:
-			return
-		
-		queue_free()
-	elif packet.type == "set_intention":
+	if packet.type == "set_intention":
 		if packet.data.type != "hover_board":
 			return
 			

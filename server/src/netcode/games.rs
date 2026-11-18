@@ -227,8 +227,13 @@ impl Games {
 
             let is_player_turn = game_lock.current_player_peer == peer;
             if !is_player_turn {
-                // TODO: Send this to client.
-                log!(Level::Error, "Not this player's turn.");
+                response.error = Some("It's not your turn.".into());
+
+                let player = game_lock.get_player_from_peer(peer).unwrap();
+                let mut player_lock = player.lock().unwrap();
+                response.is_starting_player = player_lock.is_starting_player;
+                // TODO: Is unwrap safe here?
+                response.send_to(&mut player_lock).unwrap();
                 return;
             }
 
@@ -237,7 +242,10 @@ impl Games {
 
             let card = match player_lock.play_card(hash_ulid) {
                 Err(err) => {
-                    log!(Level::Error, "{err}");
+                    response.error = Some(err.to_string());
+                    response.is_starting_player = player_lock.is_starting_player;
+                    // TODO: Is unwrap safe here?
+                    response.send_to(&mut player_lock).unwrap();
                     return;
                 }
                 Ok(card) => card,
@@ -263,8 +271,17 @@ impl Games {
 
                 let onplay = onplay.clone();
                 drop(card_lock);
-                // FIXME: This will panic on lua runtime error.
-                onplay.call::<()>(()).unwrap();
+
+                if let Err(err) = onplay.call::<()>(()) {
+                    response.error = Some(err.to_string());
+
+                    let mut player_lock = player.lock().unwrap();
+                    response.is_starting_player = player_lock.is_starting_player;
+                    response.add_card("card", card);
+                    // TODO: Is unwrap safe here?
+                    response.send_to(&mut player_lock).unwrap();
+                    return;
+                }
             } else {
                 drop(card_lock);
             }

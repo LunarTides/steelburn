@@ -2,6 +2,9 @@ class_name GamePacketHandler
 extends Object
 
 
+signal error_recieved(error: String)
+
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	Socket.packed_recieved.connect(_on_packet_recieved)
@@ -9,6 +12,10 @@ func _ready() -> void:
 
 func _on_packet_recieved(packet: ResponsePacket):
 	handle_changes(packet)
+	
+	if packet.error:
+		error_recieved.emit(packet.error)
+		return
 	
 	var f = get(packet.type)
 	if f:

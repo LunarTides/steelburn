@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://8d161fair6hn"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_nbr8c"]
+font_size = 32
+font_color = Color(1, 0, 0, 1)
+shadow_color = Color(0, 0, 0, 1)
+
+[node name="Error" type="HBoxContainer" unique_id=1985070990]
+theme_override_constants/separation = -4
+
+[node name="Label" type="Label" parent="." unique_id=1593150648]
+layout_mode = 2
+text = "ERROR: It's not your turn."
+label_settings = SubResource("LabelSettings_nbr8c")
+
+[node name="DismissButton" type="Button" parent="." unique_id=1538426715]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/outline_size = 1
+theme_override_font_sizes/font_size = 18
+text = "x"
+flat = true

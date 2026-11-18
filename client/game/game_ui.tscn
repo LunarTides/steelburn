@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://b08yxuqjrov0w" path="res://game/verification_button.gd" id="3_pyphj"]
 [ext_resource type="Script" uid="uid://dcmmvduygalla" path="res://game/chat.gd" id="4_xnou0"]
 [ext_resource type="PackedScene" uid="uid://baydnsnagxdrc" path="res://game/chat_message.tscn" id="5_sxc2a"]
+[ext_resource type="PackedScene" uid="uid://8d161fair6hn" path="res://game/error.tscn" id="6_1bhw7"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_0occc"]
 font_size = 32
@@ -12,7 +13,7 @@ font_color = Color(0.20233318, 0.96762556, 0.99999994, 1)
 outline_size = 1
 outline_color = Color(0, 0, 0, 1)
 
-[node name="GameUI" type="Control" unique_id=795391810 node_paths=PackedStringArray("opponent_name", "player_name", "opponent_mana", "player_mana")]
+[node name="GameUI" type="Control" unique_id=795391810 node_paths=PackedStringArray("opponent_name", "player_name", "opponent_mana", "player_mana", "errors_container")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -25,6 +26,7 @@ opponent_name = NodePath("HBoxContainer/OpponentName")
 player_name = NodePath("VBoxContainer/PlayerName")
 opponent_mana = NodePath("OpponentMana")
 player_mana = NodePath("PlayerMana")
+errors_container = NodePath("ErrorsContainer")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1684514405]
 layout_mode = 1
@@ -117,6 +119,19 @@ grow_horizontal = 0
 grow_vertical = 0
 text = "Player Mana"
 label_settings = SubResource("LabelSettings_0occc")
+
+[node name="ErrorsContainer" type="VBoxContainer" parent="." unique_id=1667812871]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -195.5
+offset_right = 195.5
+offset_bottom = 45.0
+grow_horizontal = 2
+
+[node name="Error" parent="ErrorsContainer" unique_id=1985070990 instance=ExtResource("6_1bhw7")]
+layout_mode = 2
 
 [connection signal="pressed" from="HBoxContainer/VerificationButton" to="HBoxContainer/VerificationButton" method="_on_pressed"]
 [connection signal="text_submitted" from="VBoxContainer/Chat/VBoxContainer/HBoxContainer/Message" to="VBoxContainer/Chat" method="_on_message_text_submitted"]
