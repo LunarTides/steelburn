@@ -164,7 +164,6 @@ impl ResponsePacket {
         player.changes.clear();
 
         // Use card changes from player.
-        // FIXME: Cards whose location is changed to Oblivion won't be used here.
         for card in &player.deck {
             self.use_card_changes_shared(player, &card);
         }
@@ -187,7 +186,6 @@ impl ResponsePacket {
     }
 
     fn use_card_changes_shared(&mut self, player: &Player, card: &SharedCard) {
-        // TODO: Don't send sensitive changes to the opposing peer.
         let mut card_lock = card.lock().unwrap();
         if card_lock.changes.is_empty() {
             return;
@@ -341,8 +339,18 @@ impl ResponsePacket {
         }
     }
 
-    // TODO: Remove this function.
-    pub fn send_draw_cards_packet(&mut self, player: &mut Player, cards: &CardCollection) {
+    pub fn as_new_card_packets(&self, card: SharedCard) -> (ResponsePacket, ResponsePacket) {
+        let mut friendly_packet = self.clone();
+        friendly_packet.packet_type = "new_card".into();
+        friendly_packet.add_card("card", card);
+
+        let mut opponent_packet = self.clone();
+        opponent_packet.packet_type = "new_card".into();
+
+        (friendly_packet, opponent_packet)
+    }
+
+    pub fn send_new_cards_packet(&mut self, player: &mut Player, cards: &CardCollection) {
         // Send cards to clients.
         self.is_starting_player = player.is_starting_player;
         // TODO: Is this smart? Does this properly send correct information for both peers?
@@ -350,13 +358,13 @@ impl ResponsePacket {
 
         // Friendly
         let mut friendly_response = self.clone();
-        friendly_response.packet_type = "draw_cards".into();
+        friendly_response.packet_type = "new_cards".into();
         friendly_response.add_cards("cards", cards.clone());
         friendly_response.send_to(player).unwrap();
 
         // Opponent
         let mut opponent_response = self.clone();
-        opponent_response.packet_type = "opponent_draw_cards".into();
+        opponent_response.packet_type = "new_cards".into();
         opponent_response
             .response_data
             .insert("amount".into(), cards.len().into());

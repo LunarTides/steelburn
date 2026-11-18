@@ -86,13 +86,19 @@ func draw_cards(packet: ResponsePacket):
 
 
 func opponent_draw_cards(packet: ResponsePacket):
-	# TODO: Don't assume this here. Use the `deck_size` of the player's changes instead.
-	var amount = packet.data.amount
-	var null_array = []
-	null_array.resize(amount)
-	null_array.fill(null)
-	Game.opponent.hand.append_array(null_array)
-	Game.opponent.hand_changed.emit()
+	pass
+
+
+func new_cards(packet: ResponsePacket):
+	var cards = packet.data.get("cards")
+	if cards:
+		# TODO: Ew. The cards should probably always be an array.
+		if typeof(cards) == TYPE_DICTIONARY:
+			Card.create_from_dict(cards)
+			return
+		
+		for card_json in cards:
+			Card.create_from_dict(card_json)
 
 
 func end_turn(packet: ResponsePacket):

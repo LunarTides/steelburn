@@ -28,19 +28,15 @@ pub enum Type {
 }
 impl FromLua for Type {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
-        // TODO: Don't unwrap.
-        let card_type = value.as_string().unwrap();
+        let card_type = value.to_string()?;
 
-        match card_type.to_string_lossy().to_lowercase().as_str() {
+        // serde_json::from_str::<Self>(&card_type).or_else(|x| Err(LuaError::runtime(x.to_string())))
+
+        match card_type.to_lowercase().as_str() {
             "minion" => Ok(Self::Minion),
             "spell" => Ok(Self::Spell),
-            // TODO: Don't panic.
-            unknown => panic!("No such card type: '{unknown}'"),
+            unknown => Err(LuaError::runtime(format!("No such card type: '{unknown}'"))),
         }
-
-        // // TODO: Don't unwrap.
-        // log!(Level::Debug, "{}", card_type.to_string_lossy());
-        // Ok(serde_json::from_str::<Self>(&card_type.to_string_lossy()).unwrap())
     }
 }
 impl IntoLua for Type {
@@ -156,7 +152,7 @@ impl Card {
         lua_vm.prepare_for_resource(game)?;
 
         lua_vm.lua.load(file_content).set_name(file_name).exec()?;
-        let card = lua_vm.lua.globals().get("card").unwrap();
+        let card = lua_vm.lua.globals().get("card")?;
         Ok(card)
     }
 

@@ -131,13 +131,13 @@ impl Game {
         // Create the coin.
         // TODO: Don't rely on epsilon.
         // TODO: Don't re-import the pack. Store the packs globally.
+        // TODO: Don't unwrap.
         // TODO: The coin here might be linked.
         let pack = Pack::import(self, "../packs/@steelburn/epsilon").unwrap();
         let the_coin = pack.cards.get_with_id("The Coin").unwrap();
         player2.add_to_hand(the_coin);
-        // TODO: This probably shouldn't be sent as a draw card packet?
         if let Some(response) = response {
-            response.send_draw_cards_packet(
+            response.send_new_cards_packet(
                 &mut player2,
                 &CardCollection::from_vec(vec![the_coin.clone()]),
             );
