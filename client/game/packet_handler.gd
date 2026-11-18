@@ -112,3 +112,7 @@ func play_card(packet: ResponsePacket):
 		return
 	
 	Card.create_from_dict(packet.data.card)
+
+
+func server_info(packet: ResponsePacket):
+	packet.set_properties(Game.server_settings)

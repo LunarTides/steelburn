@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use serde::{Deserialize, Serialize, ser::SerializeSeq};
 use ulid::Ulid;
 
 use crate::{
@@ -43,6 +44,20 @@ impl FromIterator<SharedCard> for CardCollection {
         }
 
         c
+    }
+}
+
+impl Serialize for CardCollection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for card in self.cards.clone() {
+            let card_lock = card.lock().unwrap();
+            seq.serialize_element(&card_lock.clone())?;
+        }
+        seq.end()
     }
 }
 

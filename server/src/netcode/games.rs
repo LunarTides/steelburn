@@ -1,14 +1,17 @@
 use std::{
+    io,
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
 
 use log::{Level, log};
+use serde_json::json;
 use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
 
 use crate::{
-    Shared,
+    Cli, Shared,
+    card_collection::CardCollection,
     game::{Game, SharedGame},
     netcode::{
         anticheat,
@@ -16,6 +19,7 @@ use crate::{
         packet::{Packet, ResponsePacket},
         peer_map::PeerMap,
     },
+    pack::Pack,
 };
 
 type GameData = (SharedGame, SocketAddr, SocketAddr);
@@ -135,6 +139,7 @@ impl Games {
     // TODO: Split into multiple functions.
     pub fn handle_client_packet(
         &self,
+        cli: &Cli,
         peer_map: &PeerMap,
         peer: SocketAddr,
         mut response: ResponsePacket,
@@ -177,6 +182,19 @@ impl Games {
 
         if response.packet_type == "end_turn" {
             let mut game_lock = game.lock().unwrap();
+
+            // Check if it's this player's turn.
+            let is_player_turn = game_lock.current_player_peer == peer;
+            if !is_player_turn {
+                response.error = Some("It's not your turn.".into());
+
+                let player = game_lock.get_player_from_peer(peer).unwrap();
+                let mut player_lock = player.lock().unwrap();
+                response.is_starting_player = player_lock.is_starting_player;
+                // TODO: Is unwrap safe here?
+                response.send_to(&mut player_lock).unwrap();
+                return;
+            }
             log!(
                 Level::Debug,
                 "Ending turn {} ({})",
@@ -272,6 +290,7 @@ impl Games {
                 let onplay = onplay.clone();
                 drop(card_lock);
 
+                // FIXME: If you set player's mana using cheats, then play a coin created before setting the mana, the coin will use the old mana
                 if let Err(err) = onplay.call::<()>(()) {
                     response.error = Some(err.to_string());
 
@@ -294,6 +313,185 @@ impl Games {
             response.add_card("card", card);
             game_lock.send_packet(response);
             return;
+        }
+
+        // Cheats
+        if cli.cheats {
+            if response.packet_type == "cheat_get_packs" {
+                let pack_paths = Pack::discover("../packs".into());
+
+                let game_lock = game.lock().unwrap();
+                let mut packs = Vec::new();
+                for pack_path in pack_paths {
+                    let pack = Pack::import(&game_lock, &pack_path.to_string_lossy()).unwrap();
+                    packs.push(pack);
+                }
+
+                response.response_data.insert("packs".into(), json!(packs));
+
+                let player = game_lock.get_player_from_peer(peer).unwrap();
+                let mut player_lock = player.lock().unwrap();
+                response.is_starting_player = player_lock.is_starting_player;
+                // TODO: Is unwrap safe here?
+                response.send_to(&mut player_lock).unwrap();
+                return;
+            }
+
+            if response.packet_type == "cheat_new_card" {
+                let Some(author) = response.request_data.get("author") else {
+                    log!(
+                        Level::Error,
+                        "'cheat_new_card' packet doesn't have an 'author' data field."
+                    );
+                    return;
+                };
+                let Some(author) = author.as_str() else {
+                    log!(
+                        Level::Error,
+                        "'cheat_new_card' packet 'author' data field is not a string."
+                    );
+                    return;
+                };
+
+                let Some(pack_name) = response.request_data.get("pack") else {
+                    log!(
+                        Level::Error,
+                        "'cheat_new_card' packet doesn't have a 'pack' data field."
+                    );
+                    return;
+                };
+                let Some(pack_name) = pack_name.as_str() else {
+                    log!(
+                        Level::Error,
+                        "'cheat_new_card' packet 'pack' data field is not a string."
+                    );
+                    return;
+                };
+
+                let Some(card_id) = response.request_data.get("id") else {
+                    log!(
+                        Level::Error,
+                        "'cheat_new_card' packet doesn't have an 'id' data field."
+                    );
+                    return;
+                };
+                let Some(card_id) = card_id.as_str() else {
+                    log!(
+                        Level::Error,
+                        "'cheat_new_card' packet 'id' data field is not a string."
+                    );
+                    return;
+                };
+
+                let game_lock = game.lock().unwrap();
+                // TODO: Don't import locally.
+                let pack =
+                    match Pack::import(&game_lock, &format!("../packs/@{author}/{pack_name}")) {
+                        Ok(pack) => pack,
+                        Err(err) => {
+                            let mut err_msg = err.to_string();
+                            if let Ok(err) = err.downcast::<io::Error>() {
+                                err_msg = match err.kind() {
+                                    io::ErrorKind::NotFound => "No such pack exists.".into(),
+                                    _ => err_msg,
+                                };
+                            }
+
+                            response.error = Some(err_msg);
+
+                            let player = game_lock.get_player_from_peer(peer).unwrap();
+                            let mut player_lock = player.lock().unwrap();
+                            response.is_starting_player = player_lock.is_starting_player;
+                            // TODO: Is unwrap safe here?
+                            response.send_to(&mut player_lock).unwrap();
+                            return;
+                        }
+                    };
+                let card = match pack.cards.get_with_id(card_id) {
+                    Some(card) => card,
+                    None => {
+                        response.error = Some(format!("No card with id '{card_id}' in this pack."));
+
+                        let player = game_lock.get_player_from_peer(peer).unwrap();
+                        let mut player_lock = player.lock().unwrap();
+                        response.is_starting_player = player_lock.is_starting_player;
+                        // TODO: Is unwrap safe here?
+                        response.send_to(&mut player_lock).unwrap();
+                        return;
+                    }
+                };
+
+                let player = game_lock.get_player_from_peer(peer).unwrap();
+                let mut player_lock = player.lock().unwrap();
+
+                player_lock.add_to_hand(card);
+                response.send_new_cards_packet(
+                    &mut player_lock,
+                    &CardCollection::from_vec(vec![card.clone()]),
+                );
+                return;
+            }
+
+            if response.packet_type == "cheat_set_mana" {
+                let Some(is_starting_player) = response.request_data.get("is_starting_player")
+                else {
+                    log!(
+                        Level::Error,
+                        "'cheat_set_mana' packet doesn't have an 'is_starting_player' data field."
+                    );
+                    return;
+                };
+                let Some(is_starting_player) = is_starting_player.as_bool() else {
+                    log!(
+                        Level::Error,
+                        "'cheat_set_mana' packet 'is_starting_player' data field is not a boolean."
+                    );
+                    return;
+                };
+
+                let Some(mana) = response.request_data.get("mana") else {
+                    log!(
+                        Level::Error,
+                        "'cheat_set_mana' packet doesn't have a 'mana' data field."
+                    );
+                    return;
+                };
+                let Some(mana) = mana.as_i64() else {
+                    log!(
+                        Level::Error,
+                        "'cheat_set_mana' packet 'mana' data field is not a number."
+                    );
+                    return;
+                };
+                let Ok(mana) = mana.try_into() else {
+                    log!(
+                        Level::Error,
+                        "'cheat_set_mana' packet 'mana' data field is not a valid number."
+                    );
+                    return;
+                };
+
+                let game_lock = game.lock().unwrap();
+                let player = if is_starting_player {
+                    game_lock.player1.clone()
+                } else {
+                    game_lock.player2.clone()
+                };
+
+                player.lock().unwrap().set_mana(mana);
+                player.lock().unwrap().set_empty_mana(mana);
+                game_lock.send_packet(response);
+                return;
+            }
+
+            if response.packet_type == "cheat_end_turn" {
+                let mut game_lock = game.lock().unwrap();
+                // Repeat packet to both clients.
+                response.packet_type = "end_turn".into();
+                game_lock.end_turn(&mut Some(&mut response));
+                game_lock.send_packet(response);
+                return;
+            }
         }
 
         // TODO: Handle unknown packets.

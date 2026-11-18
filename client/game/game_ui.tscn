@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://dcmmvduygalla" path="res://game/chat.gd" id="4_xnou0"]
 [ext_resource type="PackedScene" uid="uid://baydnsnagxdrc" path="res://game/chat_message.tscn" id="5_sxc2a"]
 [ext_resource type="PackedScene" uid="uid://8d161fair6hn" path="res://game/error.tscn" id="6_1bhw7"]
+[ext_resource type="PackedScene" uid="uid://i50eprakn5f5" path="res://game/cheats/cheats_ui.tscn" id="7_6qftt"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_0occc"]
 font_size = 32
@@ -119,6 +120,9 @@ grow_horizontal = 0
 grow_vertical = 0
 text = "Player Mana"
 label_settings = SubResource("LabelSettings_0occc")
+
+[node name="CheatsUI" parent="." unique_id=1474922920 instance=ExtResource("7_6qftt")]
+layout_mode = 1
 
 [node name="ErrorsContainer" type="VBoxContainer" parent="." unique_id=1667812871]
 layout_mode = 1

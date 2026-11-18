@@ -29,12 +29,12 @@ func click():
 
 func flip(instant = false):
 	if instant:
-		rotation_degrees.x += 180
+		rotation_degrees.x = -90 if Game.our_turn else 90
 		return
 	
 	_on_mouse_exited()
 	var tween: Tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tween.tween_property(self, "rotation_degrees:x", rotation_degrees.x + 180, 1)
+	tween.tween_property(self, "rotation_degrees:x", -90 if Game.our_turn else 90, 1)
 
 
 func _on_input_event(camera: Node, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int) -> void:

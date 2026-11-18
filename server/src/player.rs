@@ -197,6 +197,7 @@ impl Player {
 
     pub fn add_to_hand(&mut self, card: &SharedCard) {
         self.hand.push(card.clone());
+        card.lock().unwrap().is_starting_player = self.is_starting_player;
         // TODO: Broadcast to client.
         // self.changes.insert("hand".into(), ...);
         card.lock().unwrap().set_location(Location::Hand);

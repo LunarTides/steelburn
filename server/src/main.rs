@@ -19,11 +19,14 @@ mod player;
 
 type Shared<T> = Arc<Mutex<T>>;
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[command(version, about = "A centralized server for steelburn", long_about = None)]
 struct Cli {
     #[arg(short, long, value_name = "PORT")]
     port: Option<u16>,
+
+    #[arg(long, help = "Enable cheats")]
+    cheats: bool,
 
     // TODO: Actually implement config.
     #[arg(short, long, value_name = "FILE")]
@@ -36,6 +39,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let cli = Cli::parse();
 
-    let port = cli.port.unwrap_or(56040);
-    listen(port)
+    listen(cli)
 }

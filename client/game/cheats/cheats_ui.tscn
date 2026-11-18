@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://i50eprakn5f5"]
+
+[ext_resource type="Script" uid="uid://d01eyk7n428ko" path="res://game/cheats/cheats_ui.gd" id="1_e4un2"]
+
+[node name="CheatsUI" type="Control" unique_id=1474922920 node_paths=PackedStringArray("cards_container", "add_author", "add_pack", "add_card", "starting_player_check_box", "set_mana")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_e4un2")
+cards_container = NodePath("TabContainer/Cards")
+add_author = NodePath("TabContainer/Cards/AddCard/AddAuthor")
+add_pack = NodePath("TabContainer/Cards/AddCard/AddPack")
+add_card = NodePath("TabContainer/Cards/AddCard/AddCard")
+starting_player_check_box = NodePath("TabContainer/Players/StartingPlayerCheckBox")
+set_mana = NodePath("TabContainer/Players/Mana/SetMana")
+
+[node name="TabContainer" type="TabContainer" parent="." unique_id=971553978]
+custom_minimum_size = Vector2(400, 400)
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -20.0
+offset_right = 8.0
+offset_bottom = 20.0
+grow_vertical = 2
+current_tab = 0
+
+[node name="Cards" type="VBoxContainer" parent="TabContainer" unique_id=47431571]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="AddCard" type="HBoxContainer" parent="TabContainer/Cards" unique_id=1386965656]
+layout_mode = 2
+
+[node name="AddAuthor" type="LineEdit" parent="TabContainer/Cards/AddCard" unique_id=590488441]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "@Author"
+
+[node name="AddPack" type="LineEdit" parent="TabContainer/Cards/AddCard" unique_id=279303376]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Pack"
+
+[node name="AddCard" type="LineEdit" parent="TabContainer/Cards/AddCard" unique_id=1751250117]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Card ID"
+
+[node name="AddToHandButton" type="Button" parent="TabContainer/Cards/AddCard" unique_id=840052856]
+layout_mode = 2
+text = "Add to Hand"
+
+[node name="RefreshPacksButton" type="Button" parent="TabContainer/Cards" unique_id=1415797398]
+layout_mode = 2
+text = "Refresh Packs"
+
+[node name="Players" type="VBoxContainer" parent="TabContainer" unique_id=1566579102]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="StartingPlayerCheckBox" type="CheckBox" parent="TabContainer/Players" unique_id=525822362]
+layout_mode = 2
+text = "Affect Opponent"
+
+[node name="Mana" type="HBoxContainer" parent="TabContainer/Players" unique_id=129674413]
+layout_mode = 2
+
+[node name="SetMana" type="LineEdit" parent="TabContainer/Players/Mana" unique_id=1318524662]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "10"
+
+[node name="SetManaButton" type="Button" parent="TabContainer/Players/Mana" unique_id=1779011220]
+layout_mode = 2
+text = "Set Mana"
+
+[node name="EndTurnButton" type="Button" parent="TabContainer/Players" unique_id=875342236]
+layout_mode = 2
+text = "End Turn"
+
+[connection signal="text_submitted" from="TabContainer/Cards/AddCard/AddAuthor" to="." method="_on_card_name_text_submitted"]
+[connection signal="text_submitted" from="TabContainer/Cards/AddCard/AddPack" to="." method="_on_card_name_text_submitted"]
+[connection signal="text_submitted" from="TabContainer/Cards/AddCard/AddCard" to="." method="_on_card_name_text_submitted"]
+[connection signal="pressed" from="TabContainer/Cards/AddCard/AddToHandButton" to="." method="_on_add_to_hand_button_pressed"]
+[connection signal="pressed" from="TabContainer/Cards/RefreshPacksButton" to="." method="_on_refresh_packs_button_pressed"]
+[connection signal="text_submitted" from="TabContainer/Players/Mana/SetMana" to="." method="_on_set_mana_text_submitted"]
+[connection signal="pressed" from="TabContainer/Players/Mana/SetManaButton" to="." method="_on_set_mana_button_pressed"]
+[connection signal="pressed" from="TabContainer/Players/EndTurnButton" to="." method="_on_end_turn_button_pressed"]

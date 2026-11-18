@@ -20,6 +20,10 @@ impl Queue {
         Some(queue_index)
     }
 
+    pub fn len(&self) -> usize {
+        self.data.lock().unwrap().len()
+    }
+
     pub fn is_poisoned(&self) -> bool {
         self.data.is_poisoned()
     }

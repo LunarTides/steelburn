@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://dyyu7ixuvj0b0"]
+
+[ext_resource type="PackedScene" uid="uid://cxjrumqj0se6b" path="res://game/cheats/pack_container.tscn" id="1_0w31l"]
+[ext_resource type="Script" uid="uid://cb0a48ntu8o5u" path="res://game/cheats/packs_container.gd" id="1_uwa3b"]
+
+[node name="PacksContainer" type="ScrollContainer" unique_id=683891348 node_paths=PackedStringArray("container")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_uwa3b")
+container = NodePath("VBoxContainer")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=133756543]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PackContainer" parent="VBoxContainer" unique_id=1753157545 instance=ExtResource("1_0w31l")]
+layout_mode = 2
+
+[node name="PackContainer2" parent="VBoxContainer" unique_id=414268248 instance=ExtResource("1_0w31l")]
+layout_mode = 2

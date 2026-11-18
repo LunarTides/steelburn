@@ -339,17 +339,6 @@ impl ResponsePacket {
         }
     }
 
-    pub fn as_new_card_packets(&self, card: SharedCard) -> (ResponsePacket, ResponsePacket) {
-        let mut friendly_packet = self.clone();
-        friendly_packet.packet_type = "new_card".into();
-        friendly_packet.add_card("card", card);
-
-        let mut opponent_packet = self.clone();
-        opponent_packet.packet_type = "new_card".into();
-
-        (friendly_packet, opponent_packet)
-    }
-
     pub fn send_new_cards_packet(&mut self, player: &mut Player, cards: &CardCollection) {
         // Send cards to clients.
         self.is_starting_player = player.is_starting_player;

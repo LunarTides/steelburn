@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://dj34m4pq3cgi1"]
+
+[ext_resource type="Script" uid="uid://cwragadscsyj" path="res://game/cheats/pack_card.gd" id="1_7hlbl"]
+
+[node name="Card" type="PanelContainer" unique_id=868966887 node_paths=PackedStringArray("name_label", "text_label")]
+script = ExtResource("1_7hlbl")
+name_label = NodePath("HBoxContainer/VBoxContainer/NameLabel")
+text_label = NodePath("HBoxContainer/VBoxContainer/TextLabel")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1656737228]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer" unique_id=17391485]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="HBoxContainer/VBoxContainer" unique_id=2112394092]
+layout_mode = 2
+text = "Sheep (1) - Minion"
+
+[node name="TextLabel" type="Label" parent="HBoxContainer/VBoxContainer" unique_id=572626999]
+layout_mode = 2
+text = "Text"
+
+[node name="AddToHandButton" type="Button" parent="HBoxContainer" unique_id=1097514853]
+layout_mode = 2
+text = "Add to Hand"
+
+[connection signal="pressed" from="HBoxContainer/AddToHandButton" to="." method="_on_add_to_hand_button_pressed"]

@@ -9,12 +9,13 @@ use futures_channel::mpsc::{UnboundedSender, unbounded};
 use futures_util::{StreamExt, TryStreamExt, future, pin_mut};
 use log::{Level, log};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
 
 use crate::{
-    Shared,
+    Cli, Shared,
     netcode::{
         games::Games,
         packet::{Packet, ResponsePacket},
@@ -132,6 +133,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
 }
 
 fn handle_client_packet(
+    cli: &Cli,
     peer_map: &PeerMap,
     queue: &Queue,
     games: &Games,
@@ -191,7 +193,7 @@ fn handle_client_packet(
 
     drop(peer_info);
     if games.peer_in_game(peer) {
-        games.handle_client_packet(peer_map, peer, response);
+        games.handle_client_packet(cli, peer_map, peer, response);
     }
 }
 
@@ -224,6 +226,7 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
 }
 
 async fn handle_connection(
+    cli: Cli,
     peer_map: PeerMap,
     queue: Queue,
     games: Games,
@@ -242,6 +245,17 @@ async fn handle_connection(
 
     log!(Level::Debug, "WebSocket connection established: {addr}");
     let (tx, rx) = unbounded();
+
+    // Send packet to peer.
+    let packet = Packet::new(
+        "server_info".into(),
+        String::new(),
+        HashMap::from([
+            ("queue_size".into(), json!(queue.len())),
+            ("cheats".into(), json!(&cli.cheats)),
+        ]),
+    );
+    tx.unbounded_send(packet.into()).unwrap();
 
     // Insert the write part of this peer to the peer map.
     let player_info = PlayerInfo {
@@ -280,7 +294,7 @@ async fn handle_connection(
         };
 
         log!(Level::Debug, "Received a packet from {addr}: {packet:?}");
-        handle_client_packet(&peer_map, &queue, &games, addr, packet);
+        handle_client_packet(&cli, &peer_map, &queue, &games, addr, packet);
 
         // let peers = peer_map.lock().unwrap();
 
@@ -307,7 +321,9 @@ async fn handle_connection(
 }
 
 #[tokio::main]
-pub async fn listen(port: u16) -> Result<(), Box<dyn Error>> {
+pub async fn listen(cli: Cli) -> Result<(), Box<dyn Error>> {
+    let port = cli.port.unwrap_or(56040);
+
     // TODO: Add reconnecting.
     // TODO: Add proper handling for CTRL+C.
     let addr = format!("127.0.0.1:{port}");
@@ -326,6 +342,7 @@ pub async fn listen(port: u16) -> Result<(), Box<dyn Error>> {
 
         // TODO: Handle panics. Delete game / peer from queue. Automatically spawn new task to handle connection and send 'server_panicked' packet.
         tokio::spawn(handle_connection(
+            cli.clone(),
             peer_map.clone(),
             queue.clone(),
             games.clone(),

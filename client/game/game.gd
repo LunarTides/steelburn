@@ -19,6 +19,7 @@ var camera: Camera3D
 var board: Area3D
 var playing: bool = false
 var our_turn: bool = false
+var server_settings: ServerSettings = ServerSettings.new()
 
 
 # Called when the node enters the scene tree for the first time.

@@ -30,6 +30,10 @@ impl PeerMap {
         )
     }
 
+    pub fn len(&self) -> usize {
+        self.data.lock().unwrap().len()
+    }
+
     pub fn is_poisoned(&self) -> bool {
         self.data.is_poisoned()
     }

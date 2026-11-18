@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error, ffi::OsStr, fs, path::PathBuf, sync::Mutex};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     card::{Card, SharedCard},
@@ -9,7 +9,7 @@ use crate::{
 };
 
 // TODO: Maybe don't create the packs for every game. Maybe these should be stored globally in memory at all times.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Pack {
     #[serde(skip)]
     pub path: String,
@@ -23,7 +23,7 @@ pub struct Pack {
 
     pub links: HashMap<String, String>,
     // pub requires: HashMap<String, PackRequire>,
-    #[serde(skip)]
+    #[serde(skip_deserializing)]
     pub cards: CardCollection,
 }
 
@@ -100,7 +100,7 @@ impl Pack {
 
     // TODO: Don't rely on game?
     pub fn import(game: &Game, path: &str) -> Result<Self, Box<dyn Error>> {
-        let pack_file_contents = fs::read_to_string(PathBuf::from(path).join("pack.toml")).unwrap();
+        let pack_file_contents = fs::read_to_string(PathBuf::from(path).join("pack.toml"))?;
         let mut pack = toml::from_str::<Self>(&pack_file_contents)?;
 
         let mut cards = CardCollection::default();
