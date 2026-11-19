@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d01eyk7n428ko" path="res://game/cheats/cheats_ui.gd" id="1_e4un2"]
 
-[node name="CheatsUI" type="Control" unique_id=1474922920 node_paths=PackedStringArray("cards_container", "add_author", "add_pack", "add_card", "starting_player_check_box", "set_mana")]
+[node name="CheatsUI" type="Control" unique_id=1474922920 node_paths=PackedStringArray("cards_container", "add_author", "add_pack", "add_card", "starting_player_check_box", "set_mana", "packet_data")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,6 +17,7 @@ add_pack = NodePath("TabContainer/Cards/AddCard/AddPack")
 add_card = NodePath("TabContainer/Cards/AddCard/AddCard")
 starting_player_check_box = NodePath("TabContainer/Players/StartingPlayerCheckBox")
 set_mana = NodePath("TabContainer/Players/Mana/SetMana")
+packet_data = NodePath("TabContainer/Packet/PacketData")
 
 [node name="TabContainer" type="TabContainer" parent="." unique_id=971553978]
 custom_minimum_size = Vector2(400, 400)
@@ -85,6 +86,25 @@ text = "Set Mana"
 layout_mode = 2
 text = "End Turn"
 
+[node name="Packet" type="VBoxContainer" parent="TabContainer" unique_id=770505282]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="PacketData" type="TextEdit" parent="TabContainer/Packet" unique_id=1616854995]
+layout_mode = 2
+size_flags_vertical = 3
+text = "{
+    \"type\": \"\",
+    \"data\": {
+        
+    }
+}"
+
+[node name="SendButton" type="Button" parent="TabContainer/Packet" unique_id=1491153489]
+layout_mode = 2
+text = "Send"
+
 [connection signal="text_submitted" from="TabContainer/Cards/AddCard/AddAuthor" to="." method="_on_card_name_text_submitted"]
 [connection signal="text_submitted" from="TabContainer/Cards/AddCard/AddPack" to="." method="_on_card_name_text_submitted"]
 [connection signal="text_submitted" from="TabContainer/Cards/AddCard/AddCard" to="." method="_on_card_name_text_submitted"]
@@ -93,3 +113,4 @@ text = "End Turn"
 [connection signal="text_submitted" from="TabContainer/Players/Mana/SetMana" to="." method="_on_set_mana_text_submitted"]
 [connection signal="pressed" from="TabContainer/Players/Mana/SetManaButton" to="." method="_on_set_mana_button_pressed"]
 [connection signal="pressed" from="TabContainer/Players/EndTurnButton" to="." method="_on_end_turn_button_pressed"]
+[connection signal="pressed" from="TabContainer/Packet/SendButton" to="." method="_on_send_button_pressed"]

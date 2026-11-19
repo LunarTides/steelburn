@@ -275,6 +275,11 @@ impl Player {
     pub fn can_afford<'a>(&self, card: &'a SharedCard) -> Result<bool, Poisoned<'a, Card>> {
         Ok(card.lock()?.cost <= self.mana)
     }
+
+    pub fn attack_card(&mut self, target: &mut Card) -> bool {
+        true
+    }
+    pub fn attack_player(&mut self, target: &mut Self) {}
 }
 
 #[derive(Debug)]

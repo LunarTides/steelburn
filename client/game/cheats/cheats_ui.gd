@@ -10,6 +10,8 @@ const PACKS_CONTAINER = preload("uid://dyyu7ixuvj0b0")
 @export var starting_player_check_box: CheckBox
 @export var set_mana: LineEdit
 
+@export var packet_data: TextEdit
+
 var packs_container: Control
 
 
@@ -105,3 +107,9 @@ func _on_packet_recieved(packet: ResponsePacket):
 		packs_container = PACKS_CONTAINER.instantiate()
 		packs_container.packs = packs
 		cards_container.add_child(packs_container)
+
+
+func _on_send_button_pressed() -> void:
+	var dict = JSON.parse_string(packet_data.text)
+	var packet = Packet.from(dict)
+	packet.send()

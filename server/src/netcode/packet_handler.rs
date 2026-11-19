@@ -75,6 +75,10 @@ pub fn handle_packet(
         play_card(&info, response);
         return;
     }
+    if response.packet_type == "attack" {
+        attack(&info, response);
+        return;
+    }
 
     // Cheats
     if cli.cheats {
@@ -158,26 +162,40 @@ fn end_turn(info: &Info, mut response: ResponsePacket) {
 
 fn play_card(info: &Info, mut response: ResponsePacket) {
     let Some(hash_value) = response.request_data.get("hash") else {
-        log!(
-            Level::Error,
-            "'play_card' packet doesn't have a 'hash' data field."
-        );
+        response.error = Some("'play_card' packet doesn't have a 'hash' data field.".into());
+
+        let game_lock = info.game.lock().unwrap();
+        let player = game_lock.get_player_from_peer(info.peer).unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        // TODO: Is unwrap safe here?
+        response.send_to(&mut player_lock).unwrap();
         return;
     };
     let Some(hash_string) = hash_value.as_str() else {
-        log!(
-            Level::Error,
-            "'play_card' packet 'hash' data field is not a string."
-        );
+        response.error = Some("'play_card' packet 'hash' data field is not a string.".into());
+
+        let game_lock = info.game.lock().unwrap();
+        let player = game_lock.get_player_from_peer(info.peer).unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        // TODO: Is unwrap safe here?
+        response.send_to(&mut player_lock).unwrap();
         return;
     };
     let hash_ulid = match Ulid::from_string(hash_string) {
         Ok(hash_field) => hash_field,
         Err(err) => {
-            log!(
-                Level::Error,
-                "'play_card' packet 'hash' data field is not proper Ulid. {err}"
-            );
+            response.error = Some(format!(
+                "'play_card' packet 'hash' data field is not a proper Ulid. {err}"
+            ));
+
+            let game_lock = info.game.lock().unwrap();
+            let player = game_lock.get_player_from_peer(info.peer).unwrap();
+            let mut player_lock = player.lock().unwrap();
+            response.is_starting_player = player_lock.is_starting_player;
+            // TODO: Is unwrap safe here?
+            response.send_to(&mut player_lock).unwrap();
             return;
         }
     };
@@ -256,6 +274,200 @@ fn play_card(info: &Info, mut response: ResponsePacket) {
 
     response.add_card("card", card);
     game_lock.send_packet(response);
+}
+
+fn attack(info: &Info, mut response: ResponsePacket) {
+    // {
+    //   "attacker": "D74732473892" | "Player 1"
+    //   "target": "D5443267842DF" | "Player 2"
+    // }
+
+    let Some(attacker) = response.request_data.get("attacker") else {
+        response.error = Some("'attack' packet doesn't have an 'attacker' data field.".into());
+
+        let game_lock = info.game.lock().unwrap();
+        let player = game_lock.get_player_from_peer(info.peer).unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        // TODO: Is unwrap safe here?
+        response.send_to(&mut player_lock).unwrap();
+        return;
+    };
+    let Some(attacker) = attacker.as_str() else {
+        response.error = Some("'attack' packet 'attacker' data field is not a string.".into());
+
+        let game_lock = info.game.lock().unwrap();
+        let player = game_lock.get_player_from_peer(info.peer).unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        // TODO: Is unwrap safe here?
+        response.send_to(&mut player_lock).unwrap();
+        return;
+    };
+
+    let Some(target) = response.request_data.get("target") else {
+        response.error = Some("'attack' packet doesn't have a 'target' data field.".into());
+
+        let game_lock = info.game.lock().unwrap();
+        let player = game_lock.get_player_from_peer(info.peer).unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        // TODO: Is unwrap safe here?
+        response.send_to(&mut player_lock).unwrap();
+        return;
+    };
+    let Some(target) = target.as_str() else {
+        response.error = Some("'attack' packet 'target' data field is not a string.".into());
+
+        let game_lock = info.game.lock().unwrap();
+        let player = game_lock.get_player_from_peer(info.peer).unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        // TODO: Is unwrap safe here?
+        response.send_to(&mut player_lock).unwrap();
+        return;
+    };
+
+    let game_lock = info.game.lock().unwrap();
+    let is_player_1 = game_lock.is_peer_starting_player(info.peer);
+    drop(game_lock);
+
+    let (attacker_card, attacker_player) =
+        _get_player_or_card(info, response.clone(), is_player_1, attacker, "attacker");
+    if attacker_card.is_none() && attacker_player.is_none() {
+        return;
+    }
+
+    let (target_card, target_player) =
+        _get_player_or_card(info, response.clone(), !is_player_1, target, "target");
+    if target_card.is_none() && target_player.is_none() {
+        return;
+    }
+
+    if let Some(attacker) = attacker_card {
+        if let Some(target) = target_card {
+            // TODO: Do error response if this fails.
+            // FIXME: This doesn't send the changes to the opposing card.
+            attacker
+                .lock()
+                .unwrap()
+                .attack_card(&mut target.lock().unwrap());
+        } else if let Some(target) = target_player {
+            // TODO: Do error response if this fails.
+            attacker
+                .lock()
+                .unwrap()
+                .attack_player(&mut target.lock().unwrap());
+        }
+    } else if let Some(attacker) = attacker_player {
+        if let Some(target) = target_card {
+            // TODO: Do error response if this fails.
+            attacker
+                .lock()
+                .unwrap()
+                .attack_card(&mut target.lock().unwrap());
+        } else if let Some(target) = target_player {
+            // TODO: Do error response if this fails.
+            attacker
+                .lock()
+                .unwrap()
+                .attack_player(&mut target.lock().unwrap());
+        }
+    }
+
+    let game_lock = info.game.lock().unwrap();
+    let player = game_lock.get_player_from_peer(info.peer).unwrap();
+    let player_lock = player.lock().unwrap();
+    // Repeat packet to both clients.
+    response.is_starting_player = player_lock.is_starting_player;
+    drop(player_lock);
+
+    game_lock.send_packet(response);
+}
+
+fn _get_player_or_card(
+    info: &Info,
+    mut response: ResponsePacket,
+    player1: bool,
+    string: &str,
+    packet_key: &str,
+) -> (Option<SharedCard>, Option<SharedPlayer>) {
+    let mut card = None;
+    let mut player = None;
+
+    if let Ok(hash) = Ulid::from_string(string) {
+        let game_lock = info.game.lock().unwrap();
+        let player = if player1 {
+            game_lock.player1.clone()
+        } else {
+            game_lock.player2.clone()
+        };
+        let mut player_lock = player.lock().unwrap();
+
+        card = match player_lock.board.get_with_hash(hash) {
+            Some(card) => Some(card),
+            None => {
+                response.error = Some(format!(
+                    "'attack' packet '{}' data field was not found on the board.",
+                    packet_key
+                ));
+                response.is_starting_player = player_lock.is_starting_player;
+                // TODO: Is unwrap safe here?
+                response.send_to(&mut player_lock).unwrap();
+                return (None, None);
+            }
+        }
+        .cloned();
+    } else if string.starts_with("Player ") {
+        let Some(player_index) = string.split("Player ").nth(1) else {
+            response.error = Some(format!(
+                "'attack' packet '{}' data field no such player '{}'.",
+                packet_key, string
+            ));
+
+            let game_lock = info.game.lock().unwrap();
+            let player = game_lock.get_player_from_peer(info.peer).unwrap();
+            let mut player_lock = player.lock().unwrap();
+            response.is_starting_player = player_lock.is_starting_player;
+            // TODO: Is unwrap safe here?
+            response.send_to(&mut player_lock).unwrap();
+            return (None, None);
+        };
+
+        let game_lock = info.game.lock().unwrap();
+        if player_index == "1" {
+            player = Some(game_lock.player1.clone());
+        } else if player_index == "2" {
+            player = Some(game_lock.player2.clone());
+        } else {
+            response.error = Some(format!(
+                "'attack' packet '{}' data field no such player '{}'.",
+                packet_key, string
+            ));
+
+            let player = game_lock.get_player_from_peer(info.peer).unwrap();
+            let mut player_lock = player.lock().unwrap();
+            response.is_starting_player = player_lock.is_starting_player;
+            // TODO: Is unwrap safe here?
+            response.send_to(&mut player_lock).unwrap();
+            return (None, None);
+        }
+    } else {
+        response.error = Some(format!(
+            "'attack' packet '{}' data field '{}' is not a valid target.",
+            packet_key, string
+        ));
+
+        let game_lock = info.game.lock().unwrap();
+        let player = game_lock.get_player_from_peer(info.peer).unwrap();
+        let mut player_lock = player.lock().unwrap();
+        response.is_starting_player = player_lock.is_starting_player;
+        // TODO: Is unwrap safe here?
+        response.send_to(&mut player_lock).unwrap();
+        return (None, None);
+    }
+
+    (card, player.clone())
 }
 
 fn cheat_get_packs(info: &Info, mut response: ResponsePacket) {

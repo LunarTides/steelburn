@@ -42,6 +42,10 @@ extends Resource
 	set(value):
 		health = value
 		emit_changed()
+@export var exhausted: bool:
+	set(value):
+		exhausted = value
+		emit_changed()
 
 
 var owner: Player:

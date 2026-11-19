@@ -9,6 +9,7 @@ use ulid::Ulid;
 
 use crate::Shared;
 use crate::lua::LuaVM;
+use crate::player::Player;
 use crate::player::SharedPlayer;
 
 #[derive(Debug, Default, Serialize, Clone, PartialEq, Eq)]
@@ -87,6 +88,7 @@ pub struct Card {
 
     pub attack: i64,
     pub health: i64,
+    pub exhausted: bool,
 }
 
 impl Display for Card {
@@ -121,6 +123,7 @@ impl Clone for Card {
             lua_vm: self.lua_vm.clone(),
             attack: self.attack,
             health: self.health,
+            exhausted: true,
         }
     }
 }
@@ -218,6 +221,17 @@ impl Card {
         }
         self.health = health;
         self.changes.insert("health".into(), health.into());
+
+        if self.health <= 0 {
+            self.destroy();
+        }
+    }
+    pub fn set_exhausted(&mut self, exhausted: bool) {
+        if self.exhausted == exhausted {
+            return;
+        }
+        self.exhausted = exhausted;
+        self.changes.insert("exhausted".into(), exhausted.into());
     }
 
     /// Returns the name of the owner, if the card has an owner. This locks the owner mutex.
@@ -246,4 +260,23 @@ impl Card {
     pub fn randomize_hash(&mut self) {
         self.hash = Ulid::generate();
     }
+
+    pub fn destroy(&mut self) {
+        self.set_location(Location::Oblivion);
+    }
+
+    pub fn attack_card(&mut self, target: &mut Self) -> bool {
+        if self.exhausted {
+            return false;
+        }
+
+        // Trade blows.
+        // NOTE: Wrap for funsies :)
+        self.set_health(self.health.wrapping_sub(target.attack));
+        target.set_health(target.health.wrapping_sub(self.attack));
+
+        self.set_exhausted(true);
+        true
+    }
+    pub fn attack_player(&mut self, target: &mut Player) {}
 }

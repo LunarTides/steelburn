@@ -5,6 +5,7 @@ use ulid::Ulid;
 
 use crate::{
     Shared,
+    card::SharedCard,
     card_collection::CardCollection,
     netcode::{
         net::{SharedPlayerInfo, Tx},
@@ -180,6 +181,10 @@ impl Game {
         let new_mana = current_player_lock.empty_mana;
         current_player_lock.set_mana(new_mana);
         current_player_lock.draw_cards(1, response);
+
+        for card in &current_player_lock.board {
+            card.lock().unwrap().set_exhausted(false);
+        }
 
         // let binding = self.get_opposing_player();
         // let mut opposing_player = binding.lock().unwrap();

@@ -143,26 +143,6 @@ impl ResponsePacket {
             player.board.clear_dirty();
         }
 
-        if player.changes.is_empty() {
-            return;
-        }
-
-        let name = player.get_indexed_name();
-
-        // Log the changes for both players.
-        for changes in [&mut self.changes.0, &mut self.changes.1] {
-            if !changes.contains_key(&name) {
-                changes.insert(name.clone(), HashMap::new());
-            }
-
-            let chgs = changes.get_mut(&name).unwrap();
-            for (k, v) in player.changes.clone() {
-                chgs.insert(k, v);
-            }
-        }
-
-        player.changes.clear();
-
         // Use card changes from player.
         for card in &player.deck {
             self.use_card_changes_shared(player, &card);
@@ -183,6 +163,26 @@ impl ResponsePacket {
         }
 
         player.oblivion.clear();
+
+        if player.changes.is_empty() {
+            return;
+        }
+
+        let name = player.get_indexed_name();
+
+        // Log the changes for both players.
+        for changes in [&mut self.changes.0, &mut self.changes.1] {
+            if !changes.contains_key(&name) {
+                changes.insert(name.clone(), HashMap::new());
+            }
+
+            let chgs = changes.get_mut(&name).unwrap();
+            for (k, v) in player.changes.clone() {
+                chgs.insert(k, v);
+            }
+        }
+
+        player.changes.clear();
     }
 
     fn use_card_changes_shared(&mut self, player: &Player, card: &SharedCard) {
@@ -275,6 +275,10 @@ impl ResponsePacket {
 
         let changes = self.get_player_changes(player).clone();
         self.personalized_chages.clone_from(&changes);
+
+        // FIXME: This is not a good idea, but we need something like this anyway. Ughhhh
+        // let changes = self.get_opponent_changes(player).clone();
+        // self.personalized_chages.extend(changes);
 
         player.sink.unbounded_send(self.deref().into())?;
         self.personalized_chages.clear();
