@@ -1,7 +1,11 @@
+use std::collections::HashMap;
+
 use mlua::prelude::*;
 use mlua::{Lua, Result};
+use serde_json::{Map, Value};
 
 use crate::card::{Card, SharedCard};
+use crate::netcode::packet::ResponsePacket;
 use crate::player::SharedPlayer;
 
 #[derive(Debug, Default, Clone)]
@@ -68,6 +72,29 @@ impl LuaUserData for LuaPlayer {
         fields.add_field_method_get("mana", |_, this| Ok(this.player.lock().unwrap().mana));
         fields.add_field_method_set("mana", |_, this, val| {
             this.player.lock().unwrap().set_mana(val);
+            Ok(())
+        });
+
+        fields.add_field_method_get("opponent", |_, this| {
+            Ok(<SharedPlayer as Into<LuaPlayer>>::into(
+                this.player.lock().unwrap().get_opponent(),
+            ))
+        });
+    }
+
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("send_packet", |_, this, value: (String, LuaTable)| {
+            let is_starting_player = this.player.lock().unwrap().is_starting_player;
+
+            let mut data = HashMap::new();
+            for pair in value.1.pairs() {
+                let (key, value): (String, LuaValue) = pair?;
+
+                data.insert(key, serde_json::to_value(value).unwrap());
+            }
+
+            let mut packet = ResponsePacket::new(value.0, None, is_starting_player, data);
+            packet.send_to(&mut this.player.lock().unwrap()).unwrap();
             Ok(())
         });
     }

@@ -29,6 +29,9 @@ opponent_mana = NodePath("OpponentMana")
 player_mana = NodePath("PlayerMana")
 errors_container = NodePath("ErrorsContainer")
 
+[node name="CheatsUI" parent="." unique_id=1474922920 instance=ExtResource("7_6qftt")]
+layout_mode = 1
+
 [node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1684514405]
 layout_mode = 1
 offset_right = 79.0
@@ -120,9 +123,6 @@ grow_horizontal = 0
 grow_vertical = 0
 text = "Player Mana"
 label_settings = SubResource("LabelSettings_0occc")
-
-[node name="CheatsUI" parent="." unique_id=1474922920 instance=ExtResource("7_6qftt")]
-layout_mode = 1
 
 [node name="ErrorsContainer" type="VBoxContainer" parent="." unique_id=1667812871]
 layout_mode = 1

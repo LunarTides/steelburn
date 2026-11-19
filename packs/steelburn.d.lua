@@ -18,4 +18,10 @@ card = Card
 ---@field is_starting_player boolean
 ---@field username string
 ---@field mana number
+---@field opponent Player
 Player = {}
+
+---Send a packet to the player's client.
+---@param type string
+---@param data table
+function Player:send_packet(type, data) end

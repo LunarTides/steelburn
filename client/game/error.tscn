@@ -9,9 +9,12 @@ shadow_color = Color(0, 0, 0, 1)
 theme_override_constants/separation = -4
 
 [node name="Label" type="Label" parent="." unique_id=1593150648]
+custom_minimum_size = Vector2(1900, 0)
 layout_mode = 2
+size_flags_horizontal = 3
 text = "ERROR: It's not your turn."
 label_settings = SubResource("LabelSettings_nbr8c")
+autowrap_mode = 3
 
 [node name="DismissButton" type="Button" parent="." unique_id=1538426715]
 layout_mode = 2
