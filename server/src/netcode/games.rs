@@ -397,32 +397,26 @@ impl Games {
                 };
 
                 let game_lock = game.lock().unwrap();
-                let pack = match game_lock.packs.get_pack(author, pack_name) {
-                    Some(pack) => pack,
-                    None => {
-                        response.error = Some("No such pack exists.".into());
+                let Some(pack) = game_lock.packs.get_pack(author, pack_name) else {
+                    response.error = Some("No such pack exists.".into());
 
-                        let player = game_lock.get_player_from_peer(peer).unwrap();
-                        let mut player_lock = player.lock().unwrap();
-                        response.is_starting_player = player_lock.is_starting_player;
-                        // TODO: Is unwrap safe here?
-                        response.send_to(&mut player_lock).unwrap();
-                        return;
-                    }
+                    let player = game_lock.get_player_from_peer(peer).unwrap();
+                    let mut player_lock = player.lock().unwrap();
+                    response.is_starting_player = player_lock.is_starting_player;
+                    // TODO: Is unwrap safe here?
+                    response.send_to(&mut player_lock).unwrap();
+                    return;
                 };
                 let pack_lock = pack.lock().unwrap();
-                let card = match pack_lock.cards.get_with_id(card_id) {
-                    Some(card) => card,
-                    None => {
-                        response.error = Some(format!("No card with id '{card_id}' in this pack."));
+                let Some(card) = pack_lock.cards.get_with_id(card_id) else {
+                    response.error = Some(format!("No card with id '{card_id}' in this pack."));
 
-                        let player = game_lock.get_player_from_peer(peer).unwrap();
-                        let mut player_lock = player.lock().unwrap();
-                        response.is_starting_player = player_lock.is_starting_player;
-                        // TODO: Is unwrap safe here?
-                        response.send_to(&mut player_lock).unwrap();
-                        return;
-                    }
+                    let player = game_lock.get_player_from_peer(peer).unwrap();
+                    let mut player_lock = player.lock().unwrap();
+                    response.is_starting_player = player_lock.is_starting_player;
+                    // TODO: Is unwrap safe here?
+                    response.send_to(&mut player_lock).unwrap();
+                    return;
                 };
 
                 let card = &card.lock().unwrap().clone().into();

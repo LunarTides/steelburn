@@ -325,7 +325,7 @@ async fn handle_connection(
 }
 
 #[tokio::main]
-pub async fn listen(cli: Cli, packs: PackCollection) -> Result<(), Box<dyn Error>> {
+pub async fn listen(cli: &Cli, packs: &PackCollection) -> Result<(), Box<dyn Error>> {
     let port = cli.port.unwrap_or(56040);
 
     // TODO: Add reconnecting.

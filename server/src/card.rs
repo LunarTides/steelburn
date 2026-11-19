@@ -151,7 +151,7 @@ impl Card {
         lua_vm.prepare_for_resource()?;
 
         lua_vm.lua.load(file_content).set_name(file_name).exec()?;
-        let mut card: Card = lua_vm.lua.globals().get("card")?;
+        let mut card: Self = lua_vm.lua.globals().get("card")?;
         card.lua_vm = lua_vm;
 
         Ok(card)

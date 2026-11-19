@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use serde::{Deserialize, Serialize, ser::SerializeSeq};
+use serde::{Serialize, ser::SerializeSeq};
 use ulid::Ulid;
 
 use crate::{

@@ -45,7 +45,7 @@ impl From<ResponsePacket> for Packet {
     fn from(value: ResponsePacket) -> Self {
         Self {
             data: value.request_data,
-            id: value.id.unwrap_or("".into()),
+            id: value.id.unwrap_or_default(),
             packet_type: value.packet_type,
         }
     }
@@ -273,8 +273,7 @@ impl ResponsePacket {
     ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
         self.prepare_for_send(player, &mut player.get_opponent().lock().unwrap());
 
-        // FIXME: Ok so its not sending the opponent's hand size now.
-        let changes = self.get_player_changes(&player).clone();
+        let changes = self.get_player_changes(player).clone();
         self.personalized_chages.clone_from(&changes);
 
         player.sink.unbounded_send(self.deref().into())?;
@@ -289,7 +288,7 @@ impl ResponsePacket {
     ) -> Result<(), futures_channel::mpsc::TrySendError<Message>> {
         self.prepare_for_send(player, opponent);
 
-        let changes = self.get_player_changes(&player).clone();
+        let changes = self.get_player_changes(player).clone();
         self.personalized_chages.clone_from(&changes);
 
         player.sink.unbounded_send(self.deref().into())?;

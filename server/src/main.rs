@@ -40,5 +40,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     let packs = PackCollection::discover("../packs".into())?;
 
-    listen(cli, packs)
+    listen(&cli, &packs)
 }
