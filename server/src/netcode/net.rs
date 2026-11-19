@@ -19,6 +19,7 @@ use crate::{
     netcode::{
         games::Games,
         packet::{Packet, ResponsePacket},
+        packet_handler::handle_packet,
         peer_map::PeerMap,
         queue::Queue,
     },
@@ -196,7 +197,7 @@ fn handle_client_packet(
 
     drop(peer_info);
     if games.peer_in_game(peer) {
-        games.handle_client_packet(cli, peer_map, peer, response);
+        handle_packet(cli, peer_map, games, peer, response);
     }
 }
 

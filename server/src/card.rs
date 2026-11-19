@@ -169,32 +169,53 @@ impl Card {
 
     // TODO: Replace with enchantments?
     pub fn set_name(&mut self, name: String) {
+        if self.name == name {
+            return;
+        }
         self.name.clone_from(&name);
         self.changes.insert("name".into(), name.into());
     }
     pub fn set_cost(&mut self, cost: i32) {
+        if self.cost == cost {
+            return;
+        }
         self.cost = cost;
         self.changes.insert("cost".into(), cost.into());
     }
     pub fn set_text(&mut self, text: String) {
+        if self.text == text {
+            return;
+        }
         self.text.clone_from(&text);
         self.changes.insert("text".into(), text.into());
     }
     pub fn set_type(&mut self, card_type: Type) {
+        if self.card_type == card_type {
+            return;
+        }
         self.card_type.clone_from(&card_type);
         self.changes
             .insert("type".into(), serde_json::to_value(card_type).unwrap());
     }
     pub fn set_location(&mut self, location: Location) {
+        if self.location == location {
+            return;
+        }
         self.location = location.clone();
         self.changes
             .insert("location".into(), serde_json::to_value(location).unwrap());
     }
     pub fn set_attack(&mut self, attack: i64) {
+        if self.attack == attack {
+            return;
+        }
         self.attack = attack;
         self.changes.insert("attack".into(), attack.into());
     }
     pub fn set_health(&mut self, health: i64) {
+        if self.health == health {
+            return;
+        }
         self.health = health;
         self.changes.insert("health".into(), health.into());
     }
