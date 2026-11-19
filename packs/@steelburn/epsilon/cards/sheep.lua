@@ -1,6 +1,8 @@
 card.name = "Sheep"
 card.type = "minion"
 card.cost = 1
+card.attack = 1
+card.health = 1
 
 local mana = 1
 

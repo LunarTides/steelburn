@@ -5,6 +5,9 @@
 ---@field cost number
 ---@field text string
 ---@field type string
+---@field id string
+---@field attack number
+---@field health number
 Card = {}
 
 ---Called when the card is played from the player's hand.

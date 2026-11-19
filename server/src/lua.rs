@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use mlua::prelude::*;
 use mlua::{Lua, Result};
-use serde_json::{Map, Value};
 
 use crate::card::{Card, SharedCard};
 use crate::netcode::packet::ResponsePacket;
@@ -152,6 +151,17 @@ impl LuaUserData for LuaCard {
         });
         fields.add_field_method_set("onplay", |_, this, val| {
             this.card.lock().unwrap().onplay = Some(val);
+            Ok(())
+        });
+
+        fields.add_field_method_get("attack", |_, this| Ok(this.card.lock().unwrap().attack));
+        fields.add_field_method_set("attack", |_, this, val| {
+            this.card.lock().unwrap().set_attack(val);
+            Ok(())
+        });
+        fields.add_field_method_get("health", |_, this| Ok(this.card.lock().unwrap().health));
+        fields.add_field_method_set("health", |_, this, val| {
+            this.card.lock().unwrap().set_health(val);
             Ok(())
         });
     }

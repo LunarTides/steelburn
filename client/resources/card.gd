@@ -34,6 +34,15 @@ extends Resource
 		hash = value
 		emit_changed()
 
+@export var attack: int:
+	set(value):
+		attack = value
+		emit_changed()
+@export var health: int:
+	set(value):
+		health = value
+		emit_changed()
+
 
 var owner: Player:
 	get:

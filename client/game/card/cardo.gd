@@ -98,6 +98,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func update_model():
+	if not card:
+		return
+	
 	var armor_mesh: MeshInstance3D = model.get_node("Armor")
 	var attack_mesh: MeshInstance3D = model.get_node("Attack")
 	var card_mesh: MeshInstance3D = model.get_node("Card")
@@ -113,9 +116,8 @@ func update_model():
 	name_mesh.visible = render_mode == RenderMode.Default
 	text_mesh.visible = render_mode == RenderMode.Default
 	# TODO: Rotate attack and health mesh depending on the side of the board.
-	# TODO: Only show if the card has an attack / health (not 0)
-	attack_mesh.visible = true
-	health_mesh.visible = true
+	attack_mesh.visible = card.attack != 0
+	health_mesh.visible = card.health != 0
 	health_frame_mesh.visible = health_mesh.visible
 	crystal_mesh.visible = render_mode == RenderMode.Default
 	rarity_mesh.visible = render_mode == RenderMode.Default
@@ -148,22 +150,22 @@ func update_model():
 
 
 func update_ui():
+	if not card:
+		return
+	
 	name_label.visible = render_mode == RenderMode.Default
 	text_label.visible = render_mode == RenderMode.Default
 	cost_label.visible = render_mode == RenderMode.Default
-	attack_label.visible = true
-	health_label.visible = true
+	attack_label.visible = card.attack != 0
+	health_label.visible = card.health != 0
 	tribe_label.visible = render_mode == RenderMode.Default
-	
-	if not card:
-		return
 	
 	name_label.text = card.name
 	text_label.text = card.text
 	cost_label.text = str(card.cost)
-	#attack_label.text = card.attack
-	#attack_label.text = card.health
-	#attack_label.text = card.tribe
+	attack_label.text = "%s" % card.attack
+	health_label.text = "%s" % card.health
+	#tribe_label.text = card.tribe
 
 
 func update_self():

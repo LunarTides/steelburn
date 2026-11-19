@@ -84,6 +84,9 @@ pub struct Card {
     pub changes: HashMap<String, Value>,
     #[serde(skip)]
     pub lua_vm: LuaVM,
+
+    pub attack: i64,
+    pub health: i64,
 }
 
 impl Display for Card {
@@ -116,6 +119,8 @@ impl Clone for Card {
             has_sent_to_player2: false,
             changes: HashMap::new(),
             lua_vm: self.lua_vm.clone(),
+            attack: self.attack,
+            health: self.health,
         }
     }
 }
@@ -126,10 +131,13 @@ impl FromLua for Card {
 
         let name = c.get::<String>("name").unwrap();
         let card_type = c.get::<Type>("type").unwrap();
-        let cost = c.get::<i32>("cost").unwrap_or(0);
+        let cost = c.get::<i32>("cost").unwrap_or_default();
         let text = c.get::<String>("text").unwrap_or_else(|_| String::new());
         let id = c.get::<String>("id").unwrap_or_else(|_| name.clone());
         let onplay = c.get::<LuaFunction>("onplay").ok();
+
+        let attack = c.get::<i64>("attack").unwrap_or_default();
+        let health = c.get::<i64>("health").unwrap_or_default();
 
         Ok(Self {
             name,
@@ -138,6 +146,8 @@ impl FromLua for Card {
             text,
             id,
             onplay,
+            attack,
+            health,
             hash: Ulid::generate(),
             ..Default::default()
         })
@@ -179,6 +189,14 @@ impl Card {
         self.location = location.clone();
         self.changes
             .insert("location".into(), serde_json::to_value(location).unwrap());
+    }
+    pub fn set_attack(&mut self, attack: i64) {
+        self.attack = attack;
+        self.changes.insert("attack".into(), attack.into());
+    }
+    pub fn set_health(&mut self, health: i64) {
+        self.health = health;
+        self.changes.insert("health".into(), health.into());
     }
 
     /// Returns the name of the owner, if the card has an owner. This locks the owner mutex.
