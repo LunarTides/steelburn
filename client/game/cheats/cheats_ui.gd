@@ -88,6 +88,9 @@ func _on_end_turn_button_pressed() -> void:
 
 
 func _on_packet_recieved(packet: ResponsePacket):
+	if packet.error:
+		return
+	
 	if packet.type == "cheat_get_packs":
 		var packs_json = packet.data.packs
 		

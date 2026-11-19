@@ -6,7 +6,6 @@ use ulid::Ulid;
 use crate::{
     card::{Card, SharedCard},
     game::SharedGame,
-    pack::Pack,
     player::SharedPlayer,
 };
 
@@ -86,9 +85,16 @@ impl CardCollection {
         if deckcode == "debug" {
             let mut cards = vec![];
 
-            let mut pack = Pack::import("../packs/@steelburn/epsilon")?;
-            pack.import_cards(&game.lock().unwrap())?;
-            let sheep = pack.cards.get_with_id("Sheep").unwrap();
+            let game_lock = game.lock().unwrap();
+            let pack = game_lock
+                .packs
+                .get_pack("steelburn", "epsilon")
+                .ok_or_else(|| -> Box<dyn Error> { Box::from("@steelburn/epsilon not found.") })?
+                .lock()
+                .unwrap();
+            let sheep = pack.cards.get_with_id("Sheep").unwrap().clone();
+            drop(pack);
+            drop(game_lock);
 
             for _ in 0..30 {
                 let sheep = sheep.lock().unwrap().clone();

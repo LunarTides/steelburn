@@ -6,11 +6,9 @@ use crate::{
     Shared,
     card::{Card, SharedCard},
     card_collection::CardCollection,
-    game::Game,
 };
 
-// TODO: Maybe don't create the packs for every game. Maybe these should be stored globally in memory at all times.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Pack {
     #[serde(skip)]
     pub path: String,
@@ -106,13 +104,8 @@ impl Pack {
         let mut pack = toml::from_str::<Self>(&pack_file_contents)?;
         pack.path = path.to_string();
 
-        Ok(pack)
-    }
-
-    // TODO: Don't rely on game?
-    pub fn import_cards(&mut self, game: &Game) -> Result<(), Box<dyn Error>> {
         let mut cards = CardCollection::default();
-        let card_paths = Self::discover_cards(&self.path);
+        let card_paths = Self::discover_cards(&pack.path);
 
         for card_path in card_paths {
             let file_content = fs::read_to_string(&card_path)?;
@@ -121,18 +114,18 @@ impl Pack {
             };
 
             let card = Card::parse_from_file_content(
-                game,
                 file_content,
-                format!("{}/{}/{}", self.author, self.name, file_name),
+                format!("{}/{}/{}", pack.author, pack.name, file_name),
             )?;
             cards.push(SharedCard::new(Mutex::new(card)));
         }
 
-        self.cards = cards;
-        Ok(())
+        pack.cards = cards;
+        Ok(pack)
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct PackCollection {
     packs: Vec<SharedPack>,
 }
@@ -148,5 +141,22 @@ impl PackCollection {
         }
 
         Ok(Self { packs })
+    }
+
+    pub fn get_pack(&self, author: &str, name: &str) -> Option<&SharedPack> {
+        self.packs.iter().find(|pack| {
+            let pack_lock = pack.lock().unwrap();
+            pack_lock.author == author && pack_lock.name == name
+        })
+    }
+
+    pub fn lock(&self) -> Vec<Pack> {
+        let mut packs = Vec::new();
+
+        for pack in &self.packs {
+            packs.push(pack.lock().unwrap().clone());
+        }
+
+        packs
     }
 }

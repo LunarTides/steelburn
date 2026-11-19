@@ -6,13 +6,12 @@ use ulid::Ulid;
 use crate::{
     Shared,
     card_collection::CardCollection,
-    lua::LuaVM,
     netcode::{
         net::{SharedPlayerInfo, Tx},
         packet::ResponsePacket,
         peer_map::PeerMap,
     },
-    pack::Pack,
+    pack::PackCollection,
     player::{Player, SharedPlayer},
 };
 
@@ -27,13 +26,13 @@ pub struct Game {
     pub player2_peer: SocketAddr,
     pub turn: u64,
     pub current_player_peer: SocketAddr,
-    // TODO: Shouldn't be global. Use individual lua VMs instead.
-    pub lua_vm: LuaVM,
+    pub packs: PackCollection,
     pub peer_map: PeerMap,
 }
 
 impl Game {
     pub fn new(
+        packs: PackCollection,
         peer_map: PeerMap,
         player1_peer: SocketAddr,
         player1_sink: Tx,
@@ -76,7 +75,7 @@ impl Game {
             id,
             turn: 0,
             current_player_peer: player1_peer,
-            lua_vm: LuaVM::start().unwrap(),
+            packs,
             peer_map,
         }
     }
@@ -130,12 +129,16 @@ impl Game {
 
         // Create the coin.
         // TODO: Don't rely on epsilon.
-        // TODO: Don't re-import the pack. Store the packs globally.
         // TODO: Don't unwrap.
-        // TODO: The coin here might be linked.
-        let mut pack = Pack::import("../packs/@steelburn/epsilon").unwrap();
-        pack.import_cards(self).unwrap();
+        let pack = self
+            .packs
+            .get_pack("steelburn", "epsilon")
+            .unwrap()
+            .lock()
+            .unwrap();
         let the_coin = pack.cards.get_with_id("The Coin").unwrap();
+        // TODO: Make doing this easier.
+        let the_coin = &the_coin.lock().unwrap().clone().into();
         player2.add_to_hand(the_coin);
         if let Some(response) = response {
             response.send_new_cards_packet(

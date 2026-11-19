@@ -1,5 +1,4 @@
 use std::{
-    io,
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
@@ -11,15 +10,18 @@ use ulid::Ulid;
 
 use crate::{
     Cli, Shared,
+    card::SharedCard,
     card_collection::CardCollection,
     game::{Game, SharedGame},
+    lua::{LuaCard, LuaPlayer},
     netcode::{
         anticheat,
         net::{SharedPlayerInfo, Tx},
         packet::{Packet, ResponsePacket},
         peer_map::PeerMap,
     },
-    pack::Pack,
+    pack::PackCollection,
+    player::SharedPlayer,
 };
 
 type GameData = (SharedGame, SocketAddr, SocketAddr);
@@ -32,6 +34,7 @@ pub struct Games {
 impl Games {
     pub fn add(
         &self,
+        packs: &PackCollection,
         peer_map: &PeerMap,
         player1_peer: SocketAddr,
         player1_sink: Tx,
@@ -42,6 +45,7 @@ impl Games {
     ) -> SharedGame {
         // TODO: Randomize who is player 1 and who is player 2.
         let game = Game::new(
+            packs.clone(),
             peer_map.clone(),
             player1_peer,
             player1_sink,
@@ -282,11 +286,6 @@ impl Games {
 
             // Run the `onplay` function on the lua side.
             if let Some(onplay) = &card_lock.onplay {
-                game_lock
-                    .lua_vm
-                    .prepare_for_card(card.clone().into(), player.clone().into())
-                    .unwrap();
-
                 let onplay = onplay.clone();
                 drop(card_lock);
 
@@ -294,8 +293,11 @@ impl Games {
                 //     .set_environment(game_lock.lua_vm.lua.globals())
                 //     .unwrap();
 
-                // FIXME: If you set player's mana using cheats, then play a coin created before setting the mana, the coin will use the old mana
-                if let Err(err) = onplay.call::<()>(()) {
+                // FIXME: Local variables are shared between cards with the same id.
+                if let Err(err) = onplay.call::<()>((
+                    <SharedCard as Into<LuaCard>>::into(card.clone()),
+                    <SharedPlayer as Into<LuaPlayer>>::into(player.clone()),
+                )) {
                     response.error = Some(err.to_string());
 
                     let mut player_lock = player.lock().unwrap();
@@ -322,16 +324,22 @@ impl Games {
         // Cheats
         if cli.cheats {
             if response.packet_type == "cheat_get_packs" {
-                let pack_paths = Pack::discover("../packs".into());
+                let mut game_lock = game.lock().unwrap();
+                game_lock.packs = match PackCollection::discover("../packs".into()) {
+                    Ok(packs) => packs,
+                    Err(err) => {
+                        response.error = Some(err.to_string());
 
-                let game_lock = game.lock().unwrap();
-                let mut packs = Vec::new();
-                for pack_path in pack_paths {
-                    let mut pack = Pack::import(&pack_path.to_string_lossy()).unwrap();
-                    pack.import_cards(&game_lock).unwrap();
-                    packs.push(pack);
-                }
+                        let player = game_lock.get_player_from_peer(peer).unwrap();
+                        let mut player_lock = player.lock().unwrap();
+                        response.is_starting_player = player_lock.is_starting_player;
+                        // TODO: Is unwrap safe here?
+                        response.send_to(&mut player_lock).unwrap();
+                        return;
+                    }
+                };
 
+                let packs = game_lock.packs.lock();
                 response.response_data.insert("packs".into(), json!(packs));
 
                 let player = game_lock.get_player_from_peer(peer).unwrap();
@@ -389,19 +397,10 @@ impl Games {
                 };
 
                 let game_lock = game.lock().unwrap();
-                // TODO: Don't import locally.
-                let mut pack = match Pack::import(&format!("../packs/@{author}/{pack_name}")) {
-                    Ok(pack) => pack,
-                    Err(err) => {
-                        let mut err_msg = err.to_string();
-                        if let Ok(err) = err.downcast::<io::Error>() {
-                            err_msg = match err.kind() {
-                                io::ErrorKind::NotFound => "No such pack exists.".into(),
-                                _ => err_msg,
-                            };
-                        }
-
-                        response.error = Some(err_msg);
+                let pack = match game_lock.packs.get_pack(author, pack_name) {
+                    Some(pack) => pack,
+                    None => {
+                        response.error = Some("No such pack exists.".into());
 
                         let player = game_lock.get_player_from_peer(peer).unwrap();
                         let mut player_lock = player.lock().unwrap();
@@ -411,17 +410,8 @@ impl Games {
                         return;
                     }
                 };
-                if let Err(err) = pack.import_cards(&game_lock) {
-                    response.error = Some(err.to_string());
-
-                    let player = game_lock.get_player_from_peer(peer).unwrap();
-                    let mut player_lock = player.lock().unwrap();
-                    response.is_starting_player = player_lock.is_starting_player;
-                    // TODO: Is unwrap safe here?
-                    response.send_to(&mut player_lock).unwrap();
-                    return;
-                }
-                let card = match pack.cards.get_with_id(card_id) {
+                let pack_lock = pack.lock().unwrap();
+                let card = match pack_lock.cards.get_with_id(card_id) {
                     Some(card) => card,
                     None => {
                         response.error = Some(format!("No card with id '{card_id}' in this pack."));
@@ -435,7 +425,8 @@ impl Games {
                     }
                 };
 
-                card.lock().unwrap().randomize_hash();
+                let card = &card.lock().unwrap().clone().into();
+                drop(pack_lock);
 
                 let player = game_lock.get_player_from_peer(peer).unwrap();
                 let mut player_lock = player.lock().unwrap();

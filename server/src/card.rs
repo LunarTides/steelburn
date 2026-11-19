@@ -8,7 +8,7 @@ use std::{fmt::Display, sync::Mutex};
 use ulid::Ulid;
 
 use crate::Shared;
-use crate::game::Game;
+use crate::lua::LuaVM;
 use crate::player::SharedPlayer;
 
 #[derive(Debug, Default, Serialize, Clone, PartialEq, Eq)]
@@ -82,6 +82,8 @@ pub struct Card {
     #[serde(skip)]
     /// Field that have changed since the last packet.
     pub changes: HashMap<String, Value>,
+    #[serde(skip)]
+    pub lua_vm: LuaVM,
 }
 
 impl Display for Card {
@@ -113,6 +115,7 @@ impl Clone for Card {
             has_sent_to_player1: false,
             has_sent_to_player2: false,
             changes: HashMap::new(),
+            lua_vm: self.lua_vm.clone(),
         }
     }
 }
@@ -143,16 +146,14 @@ impl FromLua for Card {
 
 impl Card {
     /// Creates a new card from a lua file.
-    pub fn parse_from_file_content(
-        game: &Game,
-        file_content: String,
-        file_name: String,
-    ) -> LuaResult<Self> {
-        let lua_vm = &game.lua_vm;
-        lua_vm.prepare_for_resource(game)?;
+    pub fn parse_from_file_content(file_content: String, file_name: String) -> LuaResult<Self> {
+        let lua_vm = LuaVM::start()?;
+        lua_vm.prepare_for_resource()?;
 
         lua_vm.lua.load(file_content).set_name(file_name).exec()?;
-        let card = lua_vm.lua.globals().get("card")?;
+        let mut card: Card = lua_vm.lua.globals().get("card")?;
+        card.lua_vm = lua_vm;
+
         Ok(card)
     }
 

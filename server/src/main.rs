@@ -7,7 +7,7 @@ use std::{
 use clap::Parser;
 use env_logger::Env;
 
-use crate::netcode::net::listen;
+use crate::{netcode::net::listen, pack::PackCollection};
 
 mod card;
 mod card_collection;
@@ -38,6 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init_from_env(env);
 
     let cli = Cli::parse();
+    let packs = PackCollection::discover("../packs".into())?;
 
-    listen(cli)
+    listen(cli, packs)
 }

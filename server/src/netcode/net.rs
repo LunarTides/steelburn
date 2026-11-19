@@ -9,7 +9,7 @@ use futures_channel::mpsc::{UnboundedSender, unbounded};
 use futures_util::{StreamExt, TryStreamExt, future, pin_mut};
 use log::{Level, log};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::json;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use ulid::Ulid;
@@ -22,6 +22,7 @@ use crate::{
         peer_map::PeerMap,
         queue::Queue,
     },
+    pack::PackCollection,
     player::Player,
 };
 
@@ -42,7 +43,7 @@ pub struct PlayerInfo {
     clippy::significant_drop_tightening,
     reason = "We can't drop `peers` earlier than this."
 )]
-fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
+fn try_matchmake(packs: &PackCollection, peer_map: &PeerMap, queue: &Queue, games: &Games) {
     let Some((peer1, peer2)) = queue.try_matchmake() else {
         return;
     };
@@ -56,6 +57,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
     let (info2, sink2) = &peers_lock.get(&peer2).unwrap();
 
     let game = games.add(
+        packs,
         peer_map,
         peer1,
         sink1.clone(),
@@ -134,6 +136,7 @@ fn try_matchmake(peer_map: &PeerMap, queue: &Queue, games: &Games) {
 
 fn handle_client_packet(
     cli: &Cli,
+    packs: &PackCollection,
     peer_map: &PeerMap,
     queue: &Queue,
     games: &Games,
@@ -187,7 +190,7 @@ fn handle_client_packet(
 
         drop(peer_info);
         log!(Level::Debug, "Queue: {queue:?}");
-        try_matchmake(peer_map, queue, games);
+        try_matchmake(packs, peer_map, queue, games);
         return;
     }
 
@@ -227,6 +230,7 @@ fn handle_disconnect(peer_map: &PeerMap, queue: &Queue, games: &Games, addr: Soc
 
 async fn handle_connection(
     cli: Cli,
+    packs: PackCollection,
     peer_map: PeerMap,
     queue: Queue,
     games: Games,
@@ -294,7 +298,7 @@ async fn handle_connection(
         };
 
         log!(Level::Debug, "Received a packet from {addr}: {packet:?}");
-        handle_client_packet(&cli, &peer_map, &queue, &games, addr, packet);
+        handle_client_packet(&cli, &packs, &peer_map, &queue, &games, addr, packet);
 
         // let peers = peer_map.lock().unwrap();
 
@@ -321,7 +325,7 @@ async fn handle_connection(
 }
 
 #[tokio::main]
-pub async fn listen(cli: Cli) -> Result<(), Box<dyn Error>> {
+pub async fn listen(cli: Cli, packs: PackCollection) -> Result<(), Box<dyn Error>> {
     let port = cli.port.unwrap_or(56040);
 
     // TODO: Add reconnecting.
@@ -343,6 +347,7 @@ pub async fn listen(cli: Cli) -> Result<(), Box<dyn Error>> {
         // TODO: Handle panics. Delete game / peer from queue. Automatically spawn new task to handle connection and send 'server_panicked' packet.
         tokio::spawn(handle_connection(
             cli.clone(),
+            packs.clone(),
             peer_map.clone(),
             queue.clone(),
             games.clone(),

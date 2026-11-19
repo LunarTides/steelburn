@@ -8,15 +8,14 @@
 Card = {}
 
 ---Called when the card is played from the player's hand.
-function Card.onplay() end
+---@param self Card
+---@param owner Player
+function Card.onplay(self, owner) end
 
 card = Card
-self = Card
 
 ---@class Player
 ---@field is_starting_player boolean
 ---@field username string
 ---@field mana number
 Player = {}
-
-owner = Player

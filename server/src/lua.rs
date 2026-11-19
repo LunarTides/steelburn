@@ -2,10 +2,9 @@ use mlua::prelude::*;
 use mlua::{Lua, Result};
 
 use crate::card::{Card, SharedCard};
-use crate::game::Game;
 use crate::player::SharedPlayer;
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct LuaVM {
     pub lua: Lua,
 }
@@ -28,16 +27,11 @@ impl LuaVM {
         Ok(())
     }
 
-    pub fn prepare_for_resource(&self, game: &Game) -> Result<()> {
+    pub fn prepare_for_resource(&self) -> Result<()> {
         let globals = self.lua.globals();
 
         let card = LuaCard::from(SharedCard::from(Card::default()));
         globals.set("card", card)?;
-
-        // TODO: Implement
-        // let player1_lock = game_lock.player1.lock().unwrap();
-        // globals.set("player1", player1_lock)?;
-        // drop(player1_lock);
 
         Ok(())
     }
