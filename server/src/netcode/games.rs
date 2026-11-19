@@ -290,6 +290,10 @@ impl Games {
                 let onplay = onplay.clone();
                 drop(card_lock);
 
+                // onplay
+                //     .set_environment(game_lock.lua_vm.lua.globals())
+                //     .unwrap();
+
                 // FIXME: If you set player's mana using cheats, then play a coin created before setting the mana, the coin will use the old mana
                 if let Err(err) = onplay.call::<()>(()) {
                     response.error = Some(err.to_string());
@@ -323,7 +327,8 @@ impl Games {
                 let game_lock = game.lock().unwrap();
                 let mut packs = Vec::new();
                 for pack_path in pack_paths {
-                    let pack = Pack::import(&game_lock, &pack_path.to_string_lossy()).unwrap();
+                    let mut pack = Pack::import(&pack_path.to_string_lossy()).unwrap();
+                    pack.import_cards(&game_lock).unwrap();
                     packs.push(pack);
                 }
 
@@ -385,28 +390,37 @@ impl Games {
 
                 let game_lock = game.lock().unwrap();
                 // TODO: Don't import locally.
-                let pack =
-                    match Pack::import(&game_lock, &format!("../packs/@{author}/{pack_name}")) {
-                        Ok(pack) => pack,
-                        Err(err) => {
-                            let mut err_msg = err.to_string();
-                            if let Ok(err) = err.downcast::<io::Error>() {
-                                err_msg = match err.kind() {
-                                    io::ErrorKind::NotFound => "No such pack exists.".into(),
-                                    _ => err_msg,
-                                };
-                            }
-
-                            response.error = Some(err_msg);
-
-                            let player = game_lock.get_player_from_peer(peer).unwrap();
-                            let mut player_lock = player.lock().unwrap();
-                            response.is_starting_player = player_lock.is_starting_player;
-                            // TODO: Is unwrap safe here?
-                            response.send_to(&mut player_lock).unwrap();
-                            return;
+                let mut pack = match Pack::import(&format!("../packs/@{author}/{pack_name}")) {
+                    Ok(pack) => pack,
+                    Err(err) => {
+                        let mut err_msg = err.to_string();
+                        if let Ok(err) = err.downcast::<io::Error>() {
+                            err_msg = match err.kind() {
+                                io::ErrorKind::NotFound => "No such pack exists.".into(),
+                                _ => err_msg,
+                            };
                         }
-                    };
+
+                        response.error = Some(err_msg);
+
+                        let player = game_lock.get_player_from_peer(peer).unwrap();
+                        let mut player_lock = player.lock().unwrap();
+                        response.is_starting_player = player_lock.is_starting_player;
+                        // TODO: Is unwrap safe here?
+                        response.send_to(&mut player_lock).unwrap();
+                        return;
+                    }
+                };
+                if let Err(err) = pack.import_cards(&game_lock) {
+                    response.error = Some(err.to_string());
+
+                    let player = game_lock.get_player_from_peer(peer).unwrap();
+                    let mut player_lock = player.lock().unwrap();
+                    response.is_starting_player = player_lock.is_starting_player;
+                    // TODO: Is unwrap safe here?
+                    response.send_to(&mut player_lock).unwrap();
+                    return;
+                }
                 let card = match pack.cards.get_with_id(card_id) {
                     Some(card) => card,
                     None => {
@@ -420,6 +434,8 @@ impl Games {
                         return;
                     }
                 };
+
+                card.lock().unwrap().randomize_hash();
 
                 let player = game_lock.get_player_from_peer(peer).unwrap();
                 let mut player_lock = player.lock().unwrap();

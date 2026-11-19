@@ -201,4 +201,9 @@ impl Card {
         owner_lock.deck.erase(self);
         owner_lock.board.erase(self);
     }
+
+    /// Assigns this card a new random hash.
+    pub fn randomize_hash(&mut self) {
+        self.hash = Ulid::generate();
+    }
 }

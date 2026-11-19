@@ -133,7 +133,8 @@ impl Game {
         // TODO: Don't re-import the pack. Store the packs globally.
         // TODO: Don't unwrap.
         // TODO: The coin here might be linked.
-        let pack = Pack::import(self, "../packs/@steelburn/epsilon").unwrap();
+        let mut pack = Pack::import("../packs/@steelburn/epsilon").unwrap();
+        pack.import_cards(self).unwrap();
         let the_coin = pack.cards.get_with_id("The Coin").unwrap();
         player2.add_to_hand(the_coin);
         if let Some(response) = response {

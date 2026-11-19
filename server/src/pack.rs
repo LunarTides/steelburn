@@ -3,6 +3,7 @@ use std::{collections::HashMap, error::Error, ffi::OsStr, fs, path::PathBuf, syn
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    Shared,
     card::{Card, SharedCard},
     card_collection::CardCollection,
     game::Game,
@@ -26,6 +27,8 @@ pub struct Pack {
     #[serde(skip_deserializing)]
     pub cards: CardCollection,
 }
+
+pub type SharedPack = Shared<Pack>;
 
 impl Pack {
     pub fn discover(path: String) -> Vec<PathBuf> {
@@ -98,13 +101,18 @@ impl Pack {
         paths
     }
 
-    // TODO: Don't rely on game?
-    pub fn import(game: &Game, path: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn import(path: &str) -> Result<Self, Box<dyn Error>> {
         let pack_file_contents = fs::read_to_string(PathBuf::from(path).join("pack.toml"))?;
         let mut pack = toml::from_str::<Self>(&pack_file_contents)?;
+        pack.path = path.to_string();
 
+        Ok(pack)
+    }
+
+    // TODO: Don't rely on game?
+    pub fn import_cards(&mut self, game: &Game) -> Result<(), Box<dyn Error>> {
         let mut cards = CardCollection::default();
-        let card_paths = Self::discover_cards(path);
+        let card_paths = Self::discover_cards(&self.path);
 
         for card_path in card_paths {
             let file_content = fs::read_to_string(&card_path)?;
@@ -115,12 +123,30 @@ impl Pack {
             let card = Card::parse_from_file_content(
                 game,
                 file_content,
-                format!("{}/{}/{}", pack.author, pack.name, file_name),
+                format!("{}/{}/{}", self.author, self.name, file_name),
             )?;
             cards.push(SharedCard::new(Mutex::new(card)));
         }
 
-        pack.cards = cards;
-        Ok(pack)
+        self.cards = cards;
+        Ok(())
+    }
+}
+
+pub struct PackCollection {
+    packs: Vec<SharedPack>,
+}
+
+impl PackCollection {
+    pub fn discover(path: String) -> Result<Self, Box<dyn Error>> {
+        let mut packs = Vec::new();
+
+        let paths = Pack::discover(path);
+        for path in paths {
+            let pack = Pack::import(&path.to_string_lossy())?;
+            packs.push(SharedPack::new(Mutex::new(pack)));
+        }
+
+        Ok(Self { packs })
     }
 }
