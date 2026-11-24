@@ -67,3 +67,31 @@ func verify(message: PackedByteArray, signature: PackedByteArray) -> bool:
 
 func verify_string(message: String, signature: PackedByteArray) -> bool:
 	return verify(var_to_bytes(message), signature)
+
+
+func encrypt(message: PackedByteArray) -> PackedByteArray:
+	var crypto := Crypto.new()
+	var key := CryptoKey.new()
+	key.load_from_string(public_key, true)
+	
+	return crypto.encrypt(key, message)
+
+
+func encrypt_string(message: String) -> PackedByteArray:
+	return encrypt(var_to_bytes(message))
+
+
+func decrypt(message: PackedByteArray) -> PackedByteArray:
+	if not has_private_key:
+		push_error("This key is not a signing key. We do not know its private key.")
+		return PackedByteArray()
+	
+	var crypto := Crypto.new()
+	var key := CryptoKey.new()
+	key.load_from_string(private_key)
+	
+	return crypto.decrypt(key, message)
+
+
+func decrypt_string(message: String) -> PackedByteArray:
+	return decrypt(var_to_bytes(message))

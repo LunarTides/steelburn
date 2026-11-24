@@ -53,7 +53,8 @@ pub fn handle_packet(
         peer,
     };
 
-    if response.packet_type == "verify_identity"
+    if response.packet_type == "request_identity_verification"
+        || response.packet_type == "verify_identity"
         || response.packet_type == "set_intention"
         || response.packet_type == "clear_intentions"
     {
