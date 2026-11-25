@@ -23,7 +23,7 @@ In the above case, you need to supply a deckcode. You can optionally include a u
 
 Once you have sent this packet, the server will remember these details until you disconnect. If you want to update your username or deckcode, you can simply send this packet again, with the updated info. If you only specify the deckcode, it will only update the deckcode, leaving the username be, and vice-versa.
 
-If the server accepts the packet successfully, it will echo this packet back to you.
+If the server accepts the packet successfully, it will echo this packet back to you. If there was an error, the packet will include an `error` field with an error message.
 
 Once you have sent this packet, it's time for the next step. Once you are ready to play, simply send a `enter_queue` packet:
 
@@ -44,7 +44,8 @@ Once you are paired with another player, the server will send you a few packets,
 {
   "type": "opponent_player_info",
   "data": {
-    "username": "Opponent's Username"
+    "username": "Opponent's Username",
+    "public_key": "-----BEGIN PUBLIC KEY-----" | "" // This can be any string, so be careful.
   }
 }
 ```
@@ -70,7 +71,7 @@ console.log("Connecting...");
 
 const host = "steelburn.lunartides.dev"; // This URL is an example. It does not exist yet.
 const port = 56040;
-const socket = new WebSocket(`ws://${host}:${port}`);
+const socket = new WebSocket(`wss://${host}:${port}`);
 
 let isInGame = false;
 let isStartingPlayer = false;
@@ -87,6 +88,7 @@ socket.addEventListener("open", () => {
     type: "player_info",
     data: {
       // username: "Your Username", // optional
+      // public_key: "", // optional
       deckcode: "Your Deckcode",
     },
   });
@@ -99,6 +101,12 @@ socket.addEventListener("close", (event) => {
 
 socket.addEventListener("message", (event) => {
   const packet = JSON.parse(event.data);
+  
+  if (packet.error) {
+    // There was an error :(
+    console.error(packet.error);
+    return;
+  }
 
   if (packet.type === "player_info") {
     // Your information has been accepted. Enter queue.
@@ -139,11 +147,11 @@ When the server repeats a packet back to you, it usually does so in the form of 
 ```json
 {
   "type": "packet_type",
-  "is_starting_player": true | false,
-  "id": "packet_id" | null,
+  "is_starting_player": true | false, // May be omitted.
+  "id": "packet_id" | null,           // May be omitted.
   "data": {},
-  "error": null,
-  "changes": {},
+  "error": "Error message" | null,    // May be omitted.
+  "changes": {},                      // May be omitted.
 }
 ```
 
@@ -168,6 +176,8 @@ The changes field is very important. It usually looks something like this:
 This means that Player 1's (the starting player) mana and empty mana has changed to 4, and that the card with the hash `01M876VWR1CDDVTJZ5QXKMEG2Y` has had its health changed to 1. This shows the changes that have happened since the last packet, and may be included with any response packet.
 
 ## Packets
+
+Here is a list of packets and their explanations.
 
 ### Server Info
 
@@ -257,28 +267,28 @@ If sent to the server, it signals the game to end your turn. If received, you sh
 }
 ```
 
-Indicates that you want to play a card. Cards (which the server will send to you in full JSON objects) include hashes, which is a unique identifier for that card. Use this hash to refer to that corresponding card.
+Indicates that you want to play a card. Cards (which the server will often send to you in full JSON objects) include hashes, which is a unique identifier for that card. Use this hash to refer to that corresponding card.
 
 The response packet:
 
 ```json
 {
   "type": "play_card",
+  "is_starting_player": false | true,
   "data": {
-    "is_starting_player": false | true,
     "card": {
       "name": "Sheep",
       "cost": 1,
       "hash": "01M4XVPMMJG44HZXAQ6DWB89DK",
       ...
-    } | "card hash"
+    } | "01M4XVPMMJG44HZXAQ6DWB89DK"
   }
 }
 ```
 
-It includes the player who played the card, as in the `is_starting_player` state of the player. It also includes the entire card object, rather than just its hash. This is because this specific response packet is only sent to your opponent, and this will tell them about the card that was played.
+The `card` field may be a full JSON object, or just the hash of the card. If the server has ever sent the full JSON object of this card before, it will refer to it through its hash from now on, to avoid repetition. Any changes to the card caused by, for example, Battlecry, is contained in the `changes` field of the response packet.
 
-For the response packet sent back to the relevant client, the `card` field will simply be the hash of the card instead of the entire object. Any changes to the card caused by, for example, Battlecry, is contained in the `changes` field of the response packet.
+The `is_starting_player` field of the packet is who played the card.
 
 ### Opponent Player Info
 
@@ -287,6 +297,7 @@ For the response packet sent back to the relevant client, the `card` field will 
   "type": "opponent_player_info",
   "data": {
     "username": "Opponent's Username"
+    "public_key": "-----BEGIN PUBLIC KEY-----" | "" // This can be any string. Be careful.
   }
 }
 ```
@@ -298,9 +309,8 @@ This has already been talked about further up.
 ```json
 {
   "type": "begin_game",
-  "data": {
-    "is_starting_player": false | true
-  }
+  "is_starting_player": false | true
+  "data": {}
 }
 ```
 
@@ -406,8 +416,8 @@ Attack a target using the attacker.
   "type": "set_intention",
   "data": {
     "type": "drag_hand" | "hover_hand" | "hover_board" | "hover_end_turn"
-    "hand_index": 0, // drag_hand | hover_hand
-    "hash": "01M4XVPMMJG44HZXAQ6DWB89DK" // hover_board
+    "hand_index": 0, // Used in: drag_hand | hover_hand
+    "hash": "01M4XVPMMJG44HZXAQ6DWB89DK" // Used in: hover_board
   }
 }
 ```
@@ -467,12 +477,12 @@ Returns a list of all packs:
   "data": {
     "packs": [
       {
-        "name": "",
-        "description": "",
-        "author": "",
-        "version": "",
-        "api_version": "",
-        "license": "",
+        "name": "epsilon",
+        "description": "First official pack.",
+        "author": "steelburn",
+        "version": "0.1.0",
+        "api_version": "0.1.0",
+        "license": "GPL-3.0",
         "cards": [
           {
             "name": "Sheep",
@@ -524,4 +534,4 @@ Set the player associated with `is_starting_player`'s mana to `mana`.
 }
 ```
 
-This ends the current turn without regard for whose turn it is. There is no validation, you can end your opponent's turn/
+This ends the current turn without regard for whose turn it is. There is no validation, you can end your opponent's turn.
