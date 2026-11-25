@@ -1,16 +1,21 @@
 [gd_scene format=3 uid="uid://baydnsnagxdrc"]
 
+[ext_resource type="Script" uid="uid://cpphngys3k4vf" path="res://game/ui/chat_message.gd" id="1_ewg5b"]
+
 [sub_resource type="LabelSettings" id="LabelSettings_nbr8c"]
 outline_size = 2
 outline_color = Color(0.47051722, 1.347661e-06, 0.28933376, 1)
 
-[node name="ChatMessage" type="HBoxContainer" unique_id=956674204]
+[node name="ChatMessage" type="HBoxContainer" unique_id=956674204 node_paths=PackedStringArray("username_label", "message_label")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 8
+script = ExtResource("1_ewg5b")
+username_label = NodePath("Username")
+message_label = NodePath("Message")
 
 [node name="Username" type="Label" parent="." unique_id=303792586]
 layout_mode = 2

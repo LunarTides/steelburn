@@ -4,7 +4,7 @@ const CHAT_MESSAGE = preload("uid://baydnsnagxdrc")
 
 @export var message: LineEdit
 @export var chat_messages_container: VBoxContainer
-@onready var scroll_container: ScrollContainer = $VBoxContainer/ScrollContainer
+@export var scroll_container: ScrollContainer
 
 
 # Called when the node enters the scene tree for the first time.
@@ -29,6 +29,17 @@ func _on_send_button_pressed() -> void:
 	})
 	packet.send()
 	
+	var text = packet.data.text
+	
+	var chat_message := CHAT_MESSAGE.instantiate()
+	chat_message.username = Game.player.username
+	chat_message.message = text
+	chat_message.id = packet.id
+	chat_messages_container.add_child(chat_message)
+	
+	await get_tree().process_frame
+	scroll_container.scroll_vertical = INT32_MAX
+	
 	message.clear()
 	message.edit()
 
@@ -41,12 +52,17 @@ func _on_packet_recieved(packet: ResponsePacket) -> void:
 	if packet.type != "chat_message":
 		return
 	
-	#await get_tree().create_timer(1.0).timeout
+	# Make sure the chat message doesn't already exist in the list.
+	for child: Control in chat_messages_container.get_children():
+		if child.id == packet.id:
+			return
+	
 	var text = packet.data.text
 	
 	var chat_message := CHAT_MESSAGE.instantiate()
-	chat_message.get_node(^"Username").text = Game.starting_player.username if packet.is_starting_player else Game.starting_player.get_opponent().username
-	chat_message.get_node(^"Message").text = text
+	chat_message.username = Game.starting_player.username if packet.is_starting_player else Game.starting_player.get_opponent().username
+	chat_message.message = text
+	chat_message.confirmed = true
 	chat_messages_container.add_child(chat_message)
 	
 	await get_tree().process_frame

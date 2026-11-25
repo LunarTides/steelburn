@@ -451,7 +451,7 @@ Remove all currently active intentions.
 {
   "type": "chat_message",
   "data": {
-    "message": "Message"
+    "text": "Message"
   }
 }
 ```
