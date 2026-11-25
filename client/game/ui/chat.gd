@@ -41,6 +41,7 @@ func _on_packet_recieved(packet: ResponsePacket) -> void:
 	if packet.type != "chat_message":
 		return
 	
+	#await get_tree().create_timer(1.0).timeout
 	var text = packet.data.text
 	
 	var chat_message := CHAT_MESSAGE.instantiate()

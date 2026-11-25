@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b612pe5kfmsno"]
 
-[ext_resource type="Script" uid="uid://jhv84qeg45qa" path="res://game/end_turn_button.gd" id="1_8ot47"]
+[ext_resource type="Script" uid="uid://jhv84qeg45qa" path="res://game/3d/end_turn_button.gd" id="1_8ot47"]
 [ext_resource type="PackedScene" uid="uid://bwakpro8juvt4" path="res://assets/models/end_turn/end_turn.blend" id="1_r6qwo"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_nbr8c"]

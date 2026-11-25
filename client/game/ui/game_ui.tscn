@@ -1,12 +1,12 @@
 [gd_scene format=3 uid="uid://pd5dv7ndga7s"]
 
-[ext_resource type="Script" uid="uid://3h31kq1yarkq" path="res://game/game_ui.gd" id="1_0occc"]
-[ext_resource type="Texture2D" uid="uid://bd5bljqxel0ju" path="res://assets/icons/lock-keyhole-off.svg" id="2_qe77m"]
-[ext_resource type="Script" uid="uid://b08yxuqjrov0w" path="res://game/verification_button.gd" id="3_pyphj"]
-[ext_resource type="Script" uid="uid://dcmmvduygalla" path="res://game/chat.gd" id="4_xnou0"]
-[ext_resource type="PackedScene" uid="uid://baydnsnagxdrc" path="res://game/chat_message.tscn" id="5_sxc2a"]
-[ext_resource type="PackedScene" uid="uid://8d161fair6hn" path="res://game/error.tscn" id="6_1bhw7"]
-[ext_resource type="PackedScene" uid="uid://i50eprakn5f5" path="res://game/cheats/cheats_ui.tscn" id="7_6qftt"]
+[ext_resource type="Script" uid="uid://3h31kq1yarkq" path="res://game/ui/game_ui.gd" id="1_nqe3l"]
+[ext_resource type="PackedScene" uid="uid://i50eprakn5f5" path="res://game/cheats/cheats_ui.tscn" id="2_c8ebk"]
+[ext_resource type="Texture2D" uid="uid://bd5bljqxel0ju" path="res://assets/icons/lock-keyhole-off.svg" id="3_5y8d4"]
+[ext_resource type="Script" uid="uid://b08yxuqjrov0w" path="res://game/ui/verification_button.gd" id="4_7iqf0"]
+[ext_resource type="Script" uid="uid://dcmmvduygalla" path="res://game/ui/chat.gd" id="5_fnmck"]
+[ext_resource type="PackedScene" uid="uid://baydnsnagxdrc" path="res://game/ui/chat_message.tscn" id="6_egibn"]
+[ext_resource type="PackedScene" uid="uid://8d161fair6hn" path="res://game/ui/error.tscn" id="7_xtb4u"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_0occc"]
 font_size = 32
@@ -22,14 +22,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
-script = ExtResource("1_0occc")
+script = ExtResource("1_nqe3l")
 opponent_name = NodePath("HBoxContainer/OpponentName")
 player_name = NodePath("VBoxContainer/PlayerName")
 opponent_mana = NodePath("OpponentMana")
 player_mana = NodePath("PlayerMana")
 errors_container = NodePath("ErrorsContainer")
 
-[node name="CheatsUI" parent="." unique_id=1474922920 instance=ExtResource("7_6qftt")]
+[node name="CheatsUI" parent="." unique_id=1474922920 instance=ExtResource("2_c8ebk")]
 layout_mode = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1684514405]
@@ -44,8 +44,8 @@ text = "Opponent"
 [node name="VerificationButton" type="TextureButton" parent="HBoxContainer" unique_id=1902610316]
 modulate = Color(1, 0, 0, 1)
 layout_mode = 2
-texture_normal = ExtResource("2_qe77m")
-script = ExtResource("3_pyphj")
+texture_normal = ExtResource("3_5y8d4")
+script = ExtResource("4_7iqf0")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=952240308]
 layout_mode = 1
@@ -64,7 +64,7 @@ text = "Player"
 custom_minimum_size = Vector2(400, 200)
 layout_mode = 2
 size_flags_horizontal = 3
-script = ExtResource("4_xnou0")
+script = ExtResource("5_fnmck")
 message = NodePath("VBoxContainer/HBoxContainer/Message")
 chat_messages_container = NodePath("VBoxContainer/ScrollContainer/ChatMessagesContainer")
 
@@ -81,7 +81,7 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ChatMessage" parent="VBoxContainer/Chat/VBoxContainer/ScrollContainer/ChatMessagesContainer" unique_id=956674204 instance=ExtResource("5_sxc2a")]
+[node name="ChatMessage" parent="VBoxContainer/Chat/VBoxContainer/ScrollContainer/ChatMessagesContainer" unique_id=956674204 instance=ExtResource("6_egibn")]
 layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/Chat/VBoxContainer" unique_id=978640300]
@@ -134,7 +134,7 @@ offset_right = 195.5
 offset_bottom = 45.0
 grow_horizontal = 2
 
-[node name="Error" parent="ErrorsContainer" unique_id=1985070990 instance=ExtResource("6_1bhw7")]
+[node name="Error" parent="ErrorsContainer" unique_id=1985070990 instance=ExtResource("7_xtb4u")]
 layout_mode = 2
 
 [connection signal="pressed" from="HBoxContainer/VerificationButton" to="HBoxContainer/VerificationButton" method="_on_pressed"]
